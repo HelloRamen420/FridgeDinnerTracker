@@ -1,9 +1,11 @@
-const CACHE_NAME = 'fridge-dinner-tracker-v1';
+const CACHE_NAME = 'fridge-dinner-tracker-v2';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
+  './ai.js',
+  './icon-512.png',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap'
 ];
