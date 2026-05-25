@@ -1,9 +1,36 @@
-// ─── 0. サービスワーカー登録 (PWA) ───
+// ─── 0. サービスワーカー登録 (PWA) ＆ 強制自動即時アップデート ───
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('サービスワーカー登録成功:', reg.scope))
+      .then(reg => {
+        console.log('サービスワーカー登録成功:', reg.scope);
+        
+        // 起動時にサーバー上の更新ファイルを強制チェック
+        reg.update();
+        
+        // アップデートが検出されインストールされた際の即時反映処理
+        reg.onupdatefound = () => {
+          const installingWorker = reg.installing;
+          if (installingWorker) {
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('新しいアップデートを検出しました。即時適用のためリロードします。');
+                window.location.reload();
+              }
+            };
+          }
+        };
+      })
       .catch(err => console.log('サービスワーカー登録失敗:', err));
+  });
+
+  // アクティブなサービスワーカーが切り替わったらページを自動で即座に再起動
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
   });
 }
 
