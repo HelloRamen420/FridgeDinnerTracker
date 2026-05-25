@@ -17,6 +17,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
   
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <!-- CSS スタイル -->
   <link rel="stylesheet" href="style.css">
 </head>
@@ -25,89 +28,52 @@
   <!-- アプリ本体コンテナ -->
   <div id="app-container">
     
+    <!-- 固定アプリヘッダー (Cupertinoスタイル) -->
+    <header id="app-header">
+      <div class="app-header-left">
+        <span class="app-logo">🧊</span>
+        <span class="app-name">冷蔵庫夕食</span>
+      </div>
+      <div class="app-header-sync" id="sync-indicator" title="クラウド同期状態">
+        <span class="sync-dot"></span>
+        <span class="sync-text">ローカル保存</span>
+      </div>
+      <div class="app-header-actions">
+        <button class="header-action-btn" id="btn-open-notifications" title="お知らせ">
+          <span class="btn-icon">🔔</span>
+          <span class="badge" id="notification-badge" style="display: none;"></span>
+        </button>
+        <button class="header-action-btn" id="btn-open-info" title="アプリについて">
+          <span class="btn-icon" style="font-family: Georgia, serif; font-style: italic; font-weight: bold;">i</span>
+        </button>
+      </div>
+    </header>
+    
     <!-- 1. メイン表示エリア（タブ切り替え） -->
     <main id="main-content">
       
-      <!-- ─── A. ダッシュボード画面 ─── -->
-      <section id="tab-dashboard" class="tab-pane active">
+      <!-- ─── A. タイムライン画面（新規） ─── -->
+      <section id="tab-timeline" class="tab-pane active">
         <header class="view-header">
           <div class="header-main">
             <div>
-              <span class="view-subtitle">Today's Overview</span>
-              <h1 class="view-title">ダッシュボード</h1>
-            </div>
-            <div style="display: flex; gap: 8px;">
-              <button class="icon-btn-info" id="btn-open-changelog" title="更新履歴">
-                <span class="info-icon">v</span>
-              </button>
-              <button class="icon-btn-info" id="btn-open-info" title="アプリについて">
-                <span class="info-icon">i</span>
-              </button>
+              <span class="view-subtitle">Community Feed</span>
+              <h1 class="view-title">タイムライン</h1>
             </div>
           </div>
         </header>
         
         <div class="view-body">
-          <!-- 統計カード -->
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-icon icon-fridge">🧊</div>
-              <div class="stat-label">冷蔵庫の食材</div>
-              <div class="stat-value" id="stats-fridge-count">0 品</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon icon-dinner">📋</div>
-              <div class="stat-label">今週の晩ごはん</div>
-              <div class="stat-value" id="stats-dinner-count">0 回</div>
-            </div>
+          <!-- 空白状態 -->
+          <div class="empty-state" id="timeline-empty-state" style="display: none;">
+            <div class="empty-icon">👥</div>
+            <h3>まだ共有された投稿はありません</h3>
+            <p>夕飯を記録するときに「タイムラインに共有する」をオンにして、最初のレシピを投稿しましょう！</p>
           </div>
           
-          <!-- 買い物メモセクション -->
-          <div class="dashboard-section">
-            <div class="section-header">
-              <h2>買い物メモ</h2>
-            </div>
-            <div class="shopping-card">
-              <div class="shopping-input-row">
-                <input type="text" id="shopping-new-item" placeholder="買うものを入力 (例: 卵, キャベツ)">
-                <button type="button" id="btn-add-shopping">追加</button>
-              </div>
-              <ul class="shopping-list" id="dashboard-shopping-list">
-                <!-- JSで動的に買い物リスト項目が追加されます -->
-              </ul>
-
-            </div>
+          <div class="timeline-feed" id="timeline-posts-container">
+            <!-- 動的生成される公開晩ごはんカード -->
           </div>
-          
-          <!-- 消費期限アラート -->
-          <div class="dashboard-section">
-            <div class="section-header">
-              <h2>消費期限アラート</h2>
-              <span class="alert-badge" id="dashboard-alert-badge">0</span>
-            </div>
-            <div class="alert-list" id="dashboard-alert-list">
-              <!-- JSで動的に構築される警告食材カードが入る -->
-            </div>
-          </div>
-                    <!-- AI食事の構成要素分析 -->
-            <div class="dashboard-section">
-              <div class="section-header">
-                <h2>AI食事の構成要素分析</h2>
-              </div>
-              <div class="profile-card" id="ai-preference-profile-card">
-                <!-- JSで動的生成されるカード -->
-              </div>
-            </div>
-            
-            <!-- スマートおすすめ献立提案 -->
-            <div class="dashboard-section">
-              <div class="section-header">
-                <h2>今日の献立アイデア</h2>
-              </div>
-              <div class="recommendation-card" id="recipe-recommendation-card">
-                <!-- JSで動的生成されるカード -->
-              </div>
-            </div>
         </div>
       </section>
       
@@ -140,13 +106,13 @@
         </div>
       </section>
       
-      <!-- ─── C. 晩ごはん履歴画面 ─── -->
+      <!-- ─── C. 夕飯の記録画面 ─── -->
       <section id="tab-logs" class="tab-pane">
         <header class="view-header">
           <div class="header-main">
             <div>
               <span class="view-subtitle">Dinner History</span>
-              <h1 class="view-title">晩ごはんの記録</h1>
+              <h1 class="view-title">夕飯の記録</h1>
             </div>
             <button class="icon-btn-add" id="btn-open-add-log">
               <span class="plus-icon">＋</span>
@@ -168,22 +134,208 @@
           </div>
         </div>
       </section>
+
+      <!-- ─── D. メモ（買い物メモ）画面（新規） ─── -->
+      <section id="tab-memo" class="tab-pane">
+        <header class="view-header">
+          <div class="header-main">
+            <div>
+              <span class="view-subtitle">Shopping Checklist</span>
+              <h1 class="view-title">買い物メモ</h1>
+            </div>
+          </div>
+        </header>
+        
+        <div class="view-body">
+          <div class="shopping-card full-screen-shopping">
+            <div class="shopping-input-row">
+              <input type="text" id="shopping-new-item" placeholder="買うものを入力 (例: 卵, キャベツ)">
+              <button type="button" id="btn-add-shopping">追加</button>
+            </div>
+            <ul class="shopping-list" id="memo-shopping-list">
+              <!-- JSで動的に買い物リスト項目が追加されます -->
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── E. マイページ画面（新規） ─── -->
+      <section id="tab-mypage" class="tab-pane">
+        <header class="view-header">
+          <div class="header-main">
+            <div>
+              <span class="view-subtitle">My Profile</span>
+              <h1 class="view-title">マイページ</h1>
+            </div>
+            <button class="icon-btn-text" id="btn-logout" style="display: none; background: none; border: none; color: var(--red); font-size: 0.9rem; font-weight: 600; cursor: pointer;">ログアウト</button>
+          </div>
+        </header>
+        
+        <div class="view-body">
+          <!-- 未ログイン時のログイン・サインアップ用カード -->
+          <div id="mypage-logged-out" class="auth-card">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <span style="font-size: 3rem;">🔐</span>
+              <h3 style="margin-top: 10px; font-weight: 700;">クラウド同期＆SNS機能</h3>
+              <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 4px;">アカウントを作成して、複数デバイスでの完全同期やお気に入り料理フォルダ、タイムライン共有を楽しもう！</p>
+            </div>
+            
+            <div class="auth-tabs" style="display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 16px;">
+              <button class="auth-tab-btn active" id="btn-switch-login" style="flex: 1; padding: 10px; border: none; background: none; font-weight: 600; font-size: 0.9rem; cursor: pointer; border-bottom: 2px solid var(--primary); color: var(--primary);">ログイン</button>
+              <button class="auth-tab-btn" id="btn-switch-signup" style="flex: 1; padding: 10px; border: none; background: none; font-weight: 600; font-size: 0.9rem; cursor: pointer; color: var(--text-sub);">アカウント作成</button>
+            </div>
+            
+            <form id="form-auth">
+              <div class="form-section" id="auth-username-section" style="display: none;">
+                <label class="form-label">ユーザー名 (英数字・一意)</label>
+                <input type="text" id="auth-username" class="form-input" placeholder="例: kirino_cook">
+              </div>
+              <div class="form-section">
+                <label class="form-label">メールアドレス</label>
+                <input type="email" id="auth-email" class="form-input" placeholder="example@email.com" required>
+              </div>
+              <div class="form-section">
+                <label class="form-label">パスワード</label>
+                <input type="password" id="auth-password" class="form-input" placeholder="6文字以上" required>
+              </div>
+              
+              <button type="submit" class="form-btn-save" id="btn-auth-submit" style="width: 100%; margin-top: 16px; background: var(--primary-gradient); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(249, 115, 22, 0.2);">ログイン</button>
+            </form>
+          </div>
+
+          <!-- ログイン完了後のマイプロフィール表示 -->
+          <div id="mypage-logged-in" style="display: none;">
+            <!-- プロフィールカード -->
+            <div class="profile-summary-card" style="background-color: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color); padding: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);">
+              <div class="profile-avatar-row" style="display: flex; gap: 16px; align-items: center;">
+                <div class="profile-avatar-wrapper" style="position: relative; width: 70px; height: 70px; border-radius: 50%; overflow: visible; background-color: var(--primary-light);">
+                  <img src="" id="mypage-avatar" class="profile-avatar-img" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/5778/5778508.png'">
+                  <input type="file" id="avatar-file-input" accept="image/*" style="display: none;">
+                  <label for="avatar-file-input" class="avatar-edit-badge" style="position: absolute; bottom: -2px; right: -2px; width: 24px; height: 24px; border-radius: 50%; background-color: var(--primary); color: white; display: flex; justify-content: center; align-items: center; font-size: 0.75rem; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">📷</label>
+                </div>
+                <div class="profile-meta" style="flex: 1;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <h2 id="mypage-username" style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin: 0;" class="editable-field">ユーザー名</h2>
+                    <span id="btn-edit-username-trigger" style="font-size: 0.8rem; cursor: pointer; color: var(--text-sub);">✏️</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                    <p id="mypage-bio" style="font-size: 0.8rem; color: var(--text-sub); margin: 0;" class="editable-field">自己紹介を書いてみましょう！</p>
+                    <span id="btn-edit-bio-trigger" style="font-size: 0.75rem; cursor: pointer; color: var(--text-sub);">✏️</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="profile-stats-bar" style="display: flex; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 12px; justify-content: space-around; text-align: center;">
+                <div class="profile-stat-item">
+                  <span class="stat-num" id="mypage-following-count" style="display: block; font-size: 1.15rem; font-weight: 700; color: var(--text-main);">0</span>
+                  <span class="stat-lbl" style="font-size: 0.7rem; color: var(--text-sub); font-weight: 500;">フォロー</span>
+                </div>
+                <div class="profile-stat-item">
+                  <span class="stat-num" id="mypage-followers-count" style="display: block; font-size: 1.15rem; font-weight: 700; color: var(--text-main);">0</span>
+                  <span class="stat-lbl" style="font-size: 0.7rem; color: var(--text-sub); font-weight: 500;">フォロワー</span>
+                </div>
+                <div class="profile-stat-item">
+                  <span class="stat-num" id="mypage-shared-count" style="display: block; font-size: 1.15rem; font-weight: 700; color: var(--text-main);">0</span>
+                  <span class="stat-lbl" style="font-size: 0.7rem; color: var(--text-sub); font-weight: 500;">共有レシピ</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- AI食事の構成要素分析 (ダッシュボードからマイページへお引っ越し) -->
+            <div class="dashboard-section" style="margin-top: 20px;">
+              <div class="section-header">
+                <h2>AI食事の構成要素分析</h2>
+              </div>
+              <div class="profile-card" id="ai-preference-profile-card">
+                <!-- JSで動的生成されるカード -->
+              </div>
+            </div>
+            
+            <!-- スマートおすすめ献立提案 (ダッシュボードからマイページへお引っ越し) -->
+            <div class="dashboard-section" style="margin-top: 20px;">
+              <div class="section-header">
+                <h2>今日の献立アイデア</h2>
+              </div>
+              <div class="recommendation-card" id="recipe-recommendation-card">
+                <!-- JSで動的生成されるカード -->
+              </div>
+            </div>
+
+            <!-- カスタムフォルダ（バインダーコレクション） -->
+            <div class="dashboard-section" style="margin-top: 20px;">
+              <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>お気に入りコレクション</h2>
+                <button class="modal-btn-save" id="btn-add-folder-trigger" style="font-size: 0.8rem; background: none; border: none; color: var(--primary); font-weight: bold; cursor: pointer;">＋ フォルダ作成</button>
+              </div>
+              <div class="folders-grid" id="mypage-folders-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px;">
+                <!-- JSで動的にフォルダ一覧をレンダリング -->
+              </div>
+            </div>
+
+            <!-- 共有レシピ一覧 -->
+            <div class="dashboard-section" style="margin-top: 20px;">
+              <div class="section-header">
+                <h2>共有中のレシピ</h2>
+              </div>
+              <div class="timeline-list" id="mypage-shared-list-container">
+                <!-- 自分が共有しているレシピのカード一覧 -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Supabaseクラウド同期設定（隠しアコーディオン） -->
+          <div class="supabase-config-card" style="margin-top: 24px; border: 1px solid var(--border-color); border-radius: 12px; background: white; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.01);">
+            <div class="config-header" id="btn-toggle-config" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background-color: #F3F4F6;">
+              <span style="font-weight: 700; font-size: 0.8rem; color: var(--text-main); display: flex; align-items: center; gap: 6px;">☁️ クラウド同期（Supabase）設定</span>
+              <span id="config-arrow" style="font-size: 0.7rem; color: var(--text-sub);">▼</span>
+            </div>
+            <div id="supabase-config-body" style="display: none; padding: 16px 16px; border-top: 1px solid var(--border-color); font-size: 0.8rem;">
+              <p style="color: var(--text-sub); margin-bottom: 12px; line-height: 1.4;">Supabaseプロジェクトを作成し、接続情報を設定してください。設定すると、別デバイスでログインした際にも完全に同じ冷蔵庫・料理履歴にアクセスできます。未設定時はLocalStorageの模擬クラウドモードで動作します。</p>
+              <div class="form-section">
+                <label class="form-label" style="font-size: 0.75rem;">SUPABASE_URL</label>
+                <input type="text" id="supabase-url" class="form-input" style="font-size: 0.8rem; padding: 8px 10px;" placeholder="https://xxxx.supabase.co">
+              </div>
+              <div class="form-section" style="margin-top: 8px;">
+                <label class="form-label" style="font-size: 0.75rem;">SUPABASE_ANON_KEY</label>
+                <input type="password" id="supabase-key" class="form-input" style="font-size: 0.8rem; padding: 8px 10px;" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+              </div>
+              <button class="form-btn-save" id="btn-save-supabase-config" style="width: 100%; margin-top: 12px; background-color: var(--text-main); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer;">設定を保存・接続</button>
+
+              <div style="margin-top: 16px; border-top: 1px dashed var(--border-color); padding-top: 12px; text-align: center;">
+                <button type="button" class="modal-btn-cancel" id="btn-show-sql-script" style="font-size: 0.75rem; color: var(--primary);">▼ Supabase SQLテーブル作成スクリプトを表示</button>
+                <div id="sql-script-container" style="display: none; margin-top: 10px; text-align: left;">
+                  <textarea readonly style="width: 100%; height: 160px; font-family: monospace; font-size: 0.65rem; padding: 8px; background-color: #1F2937; color: #F9FAFB; border-radius: 6px; border: none; resize: vertical;" id="sql-script-textarea"></textarea>
+                  <p style="font-size: 0.7rem; color: var(--text-sub); margin-top: 4px; line-height: 1.3;">※上記SQLコードをコピーし、Supabaseダッシュボードの「SQL Editor」に貼り付け、「Run」を実行してください。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
       
     </main>
     
     <!-- 2. ボトムタブナビゲーション -->
     <nav id="bottom-navbar">
-      <button class="nav-item active" data-tab="tab-dashboard">
-        <span class="nav-icon">📈</span>
-        <span class="nav-label">ダッシュボード</span>
+      <button class="nav-item active" data-tab="tab-timeline">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">タイムライン</span>
       </button>
       <button class="nav-item" data-tab="tab-fridge">
-        <span class="nav-icon">📦</span>
+        <span class="nav-icon">🧊</span>
         <span class="nav-label">冷蔵庫</span>
       </button>
       <button class="nav-item" data-tab="tab-logs">
-        <span class="nav-icon">🍳</span>
-        <span class="nav-label">晩ごはん</span>
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">夕飯の記録</span>
+      </button>
+      <button class="nav-item" data-tab="tab-memo">
+        <span class="nav-icon">🛒</span>
+        <span class="nav-label">メモ</span>
+      </button>
+      <button class="nav-item" data-tab="tab-mypage">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">マイページ</span>
       </button>
     </nav>
     
@@ -252,7 +404,7 @@
             </div>
           </div>
           
-          <!-- 削除ボタンエリア (編集モード時のみJSで表示制御) -->
+          <!-- 削除ボタンエリア -->
           <div class="form-section hidden" id="ing-delete-section">
             <button type="button" class="form-btn-delete" id="btn-delete-ingredient">この食材を削除する</button>
           </div>
@@ -283,6 +435,15 @@
             <input type="date" id="log-date" class="form-input" required>
           </div>
           
+          <!-- 公開設定トグル（新規） -->
+          <div class="form-section" style="display: flex; justify-content: space-between; align-items: center; background-color: #F9FAFB; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+            <label class="form-label" style="margin: 0; font-size: 0.85rem; font-weight: 600;">タイムラインに共有して公開する</label>
+            <label class="switch-toggle" style="position: relative; display: inline-block; width: 46px; height: 26px;">
+              <input type="checkbox" id="log-is-public" style="opacity: 0; width: 0; height: 0;">
+              <span class="switch-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 26px;"></span>
+            </label>
+          </div>
+          
           <!-- 星評価 -->
           <div class="form-section">
             <label class="form-label">おいしさ評価</label>
@@ -308,11 +469,10 @@
             </div>
           </div>
           
-          <!-- 使った冷蔵庫の食材 (スマート在庫連動) -->
+          <!-- 使った冷蔵庫の食材 -->
           <div class="form-section">
             <label class="form-label">使った食材（冷蔵庫から自動減算）</label>
             <div class="fridge-checklist" id="log-fridge-checklist">
-              <!-- JSで冷蔵庫の食材がチェックリストとして展開される -->
               <p class="checklist-empty-note">冷蔵庫に食材がありません</p>
             </div>
           </div>
@@ -328,17 +488,14 @@
             </div>
             
             <div class="memo-container">
-              <!-- 編集用エリア -->
               <textarea id="log-memo" class="form-textarea" placeholder="# レシピの手順など&#13;&#10;- **太字**や *斜体*&#13;&#10;- `-` で箇条書き&#13;&#10;1. 手順を順番に記述可能"></textarea>
-              
-              <!-- プレビュー用エリア -->
               <div id="log-memo-preview" class="markdown-preview-area hidden">
                 <span class="preview-placeholder">何も書かれていません</span>
               </div>
             </div>
           </div>
           
-          <!-- 削除ボタンエリア (編集モード時のみJSで表示制御) -->
+          <!-- 削除ボタンエリア -->
           <div class="form-section hidden" id="log-delete-section">
             <button type="button" class="form-btn-delete" id="btn-delete-log">この記録を削除する</button>
           </div>
@@ -358,8 +515,19 @@
       </header>
       
       <div class="modal-body detail-sheet-body">
-        <!-- 詳細コンテンツ -->
-        <div class="detail-header-info">
+        
+        <!-- お気に入り登録・フォルダ選択（新規） -->
+        <div class="detail-favorite-row" style="display: flex; gap: 10px; margin: 10px 16px 0; align-items: center;">
+          <button class="bookmark-btn" id="btn-toggle-bookmark" style="flex: 1; padding: 10px 12px; border-radius: 20px; border: 1px solid var(--border-color); background-color: var(--card-bg); font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; color: var(--text-sub);">
+            <span class="bookmark-star" style="font-size: 1.1rem; color: #ccc;">☆</span> お気に入りに追加
+          </button>
+          <select id="select-bookmark-folder" class="form-select" style="flex: 1; padding: 10px 12px; border-radius: 20px; margin: 0; font-size: 0.85rem; display: none;">
+            <option value="">フォルダ未選択</option>
+            <!-- 動的フォルダ選択肢 -->
+          </select>
+        </div>
+
+        <div class="detail-header-info" style="margin-top: 12px;">
           <span class="detail-date" id="detail-date">2026年05月25日</span>
           <div class="detail-rating-row">
             <div class="star-rating-display" id="detail-stars">
@@ -393,7 +561,7 @@
     </div>
   </div>
 
-  <!-- Modal 4: アプリの使い方・データについて -->
+  <!-- Modal 4: アプリの使い方・データについて ＆ 更新履歴（統合版） -->
   <div class="modal-overlay" id="modal-app-info">
     <div class="modal-sheet">
       <header class="modal-header">
@@ -415,27 +583,67 @@
         <div class="detail-section" style="margin-bottom: 24px;">
           <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); border-left: 3px solid var(--primary); padding-left: 8px; margin-bottom: 12px;">💡 アプリの主な使い方</h4>
           <ul style="padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-            <li><strong>食材を登録する</strong>: 「冷蔵庫」タブの「＋」ボタンから食材を追加します。数量や消費期限を登録することで、期限間近 of 食材が自動アラートされます。</li>
-            <li><strong>晩ごはんを記録する</strong>: 「履歴」タブの「＋」ボタンから今日の夕食を記録します。チェックした食材は冷蔵庫の在庫から<strong>自動的に減算</strong>されます。</li>
-            <li><strong>AIによる自動構成要素分析</strong>: 晩ごはんを記録すると、使用した食材やレシピメモをAIが自動解析し、ダッシュボードの分析ゲージに「鍋」「サラダ」「汁物」などの食事バランスが反映されます。</li>
-            <li><strong>インテリジェント献立アイデア</strong>: 過去の料理バランス（AI傾向）と、現在の冷蔵庫在庫（期限が近いもの）を掛け合わせ、ダッシュボードに「今日作れるおすすめメニュー」が自動提案されます。</li>
-            <li><strong>詳細の確認と編集・削除</strong>: 履歴カードをタップすると詳細が表示されます。詳細ヘッダーの「編集」から記録を修正したり、削除することができます（※在庫数は連動しません）。</li>
+            <li><strong>食材を登録する</strong>: 「冷蔵庫」タブの「＋」ボタンから食材を追加します。数量や消費期限を登録することで、期限間近の食材が自動アラートされます。</li>
+            <li><strong>晩ごはんを記録する</strong>: 「夕飯の記録」タブの「＋」ボタンから今日の夕食を記録します。チェックした食材は冷蔵庫の在庫から<strong>自動的に減算</strong>されます。</li>
+            <li><strong>AIによる自動構成要素分析</strong>: 晩ごはんを記録すると、使用した食材やレシピメモをAIが自動解析し、マイページの分析ゲージに「鍋」「サラダ」「汁物」などの食事バランスが反映されます。</li>
+            <li><strong>インテリジェント献立アイデア</strong>: 過去の料理バランス（AI傾向）と、現在の冷蔵庫在庫（期限が近いもの）を掛け合わせ、マイページに「今日作れるおすすめメニュー」が自動提案されます。</li>
+            <li><strong>詳細の確認と編集・削除</strong>: 料理をタップすると詳細が表示されます。詳細ヘッダーの「編集」から記録を修正したり、削除することができます（※在庫数は連動しません）。</li>
           </ul>
         </div>
         
         <!-- データセクション -->
-        <div class="detail-section" style="margin-bottom: 16px;">
+        <div class="detail-section" style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
           <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); border-left: 3px solid var(--primary); padding-left: 8px; margin-bottom: 12px;">🛡️ データ保存と安全について</h4>
           <div style="background-color: var(--bg-color); padding: 12px 16px; border-radius: 8px; font-size: 0.85rem; color: var(--text-main);">
             <p style="margin: 0 0 8px 0;"><strong>データはどこに保存されていますか？</strong></p>
             <p style="margin: 0 0 12px 0; color: var(--text-sub);">
-              本アプリのすべてのデータは、お使いのブラウザ専用のローカル保存領域（<strong>`LocalStorage`</strong>）に保存されます。サーバーへ送信されることはなく、端末内に安全に保管されます。
+              本アプリはローカル保存領域（<strong>`LocalStorage`</strong>）を標準のキャッシュとして使用します。さらにマイページからクラウド（Supabase）を設定することで、クラウド上のデータベースと完全同期され、複数デバイス間での同一アクセスが可能になります。
             </p>
-            <p style="margin: 0 0 8px 0;"><strong>データが消えてしまうのを防ぐには？</strong></p>
-            <ul style="padding-left: 20px; margin: 0; color: var(--text-sub); display: flex; flex-direction: column; gap: 4px;">
-              <li>ブラウザ設定で「閲覧履歴・Cookie・サイトデータの全削除」を手動で行うと消去されます。</li>
-              <li>「シークレットモード（プライベートブラウズ）」では閉じると消えるため、通常のタブでお使いください。</li>
-              <li>アプリを変更・削除するような初期化処理はプログラム内に一切入っていないため、普段通り使う分には消えません。</li>
+          </div>
+        </div>
+
+        <!-- 統合されたアップデート・更新履歴セクション -->
+        <div class="detail-section" style="margin-bottom: 16px;">
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); border-left: 3px solid var(--primary); padding-left: 8px; margin-bottom: 16px;">🚀 アプリの更新履歴</h4>
+
+          <!-- v1.0.2 -->
+          <div style="margin-bottom: 20px; border-bottom: 1px dashed var(--border-color); padding-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 1rem; font-weight: 700; color: var(--primary);">v1.0.2 (最新の同期SNS機能)</span>
+              <span style="font-size: 0.7rem; font-weight: 700; color: white; background-color: var(--primary); padding: 2px 6px; border-radius: 20px;">NEW</span>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-sub); margin-top: -4px; margin-bottom: 8px;">リリース日: 2026年05月26日</p>
+            <ul style="padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 4px; color: var(--text-sub); font-size: 0.8rem;">
+              <li><strong>冷蔵庫・夕飯・メモの完全クラウド同期</strong>: Supabaseを介して、すべての冷蔵庫食材、お料理記録、買い物メモを別デバイス間でも完全にリアルタイム同期！</li>
+              <li><strong>本格ソーシャルタイムライン＆返信・@メンション</strong>: 他ユーザーのレシピ共有、コメント返信スレッド、そして `@ユーザー名` を検知するメンション機能を搭載。メンションタップで相手のマイページモーダルが展開します。</li>
+              <li><strong>お気に入りカスタムコレクションフォルダ</strong>: 「中華」「鍋」などのカスタムフォルダをマイページで作成し、詳細画面からワンタップでお気に入り整理！</li>
+              <li><strong>リアルタイム通知センター (🔔)</strong>: いいね、コメント、フォロー、メンションが届くと、ヘッダーのベルマークに赤点灯（🔴）し、スライドシートでお知らせ。</li>
+            </ul>
+          </div>
+          
+          <!-- v1.0.1 (HOTFIX) -->
+          <div style="margin-bottom: 20px; border-bottom: 1px dashed var(--border-color); padding-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 1.0rem; font-weight: 700; color: var(--text-main);">v1.0.1</span>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-sub); margin-top: -4px; margin-bottom: 8px;">リリース日: 2026年05月25日</p>
+            <ul style="padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 4px; color: var(--text-sub); font-size: 0.8rem;">
+              <li><strong>HTTP非セキュア環境でのフリーズ解決</strong>: Math-random代替処理による `crypto.randomUUID` 制限解除。</li>
+              <li><strong>巨大写真の自動JPEG軽量圧縮</strong>: LocalStorage制限（5MB）を超えない自動アスペクト比維持800pxリサイズ＋JPEG品質0.7圧縮エンジンの搭載。</li>
+              <li><strong>詳細画面のContain表示</strong>: Cupertinoダークスレート背景とお皿が綺麗に見える `object-fit: contain` 調整。</li>
+            </ul>
+          </div>
+
+          <!-- v1.0.0 (MAJOR RELEASE) -->
+          <div style="margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 1.0rem; font-weight: 700; color: var(--text-main);">v1.0.0</span>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-sub); margin-top: -4px; margin-bottom: 8px;">リリース日: 2026年05月25日</p>
+            <ul style="padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 4px; color: var(--text-sub); font-size: 0.8rem;">
+              <li><strong>スマート食材在庫自動減算連動</strong>: 夕飯の記録時の在庫差分マイナス連携。</li>
+              <li><strong>AI食事要素自動プロファイラー＆献立アイデア</strong>: 使用食材とレシピメモからバックグラウンドで食事バランス割合をAI解析し、期限間近食材と掛け合わせて自動レシピ提案。</li>
+              <li><strong>星評価スライダー（0.1刻み）＆買い物メモ個別スライド削除</strong>。</li>
             </ul>
           </div>
         </div>
@@ -444,50 +652,135 @@
     </div>
   </div>
 
-  <!-- Modal 5: アプリの更新履歴・変更履歴 -->
-  <div class="modal-overlay" id="modal-app-changelog">
+  <!-- Modal 5: お知らせ・通知シート（新規） -->
+  <div class="modal-overlay" id="modal-notifications">
     <div class="modal-sheet">
       <header class="modal-header">
         <div></div>
-        <h3 class="modal-title">アップデート・更新履歴</h3>
-        <button class="modal-btn-close" id="btn-close-changelog">閉じる</button>
+        <h3 class="modal-title">お知らせ・通知</h3>
+        <button class="modal-btn-close" id="btn-close-notifications">閉じる</button>
       </header>
-      
-      <div class="modal-body info-sheet-body" style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); -webkit-overflow-scrolling: touch;">
-        
-        <!-- v1.0.1 (HOTFIX) -->
-        <div class="detail-section" style="margin-bottom: 24px; border-bottom: 1px dashed var(--border-color); padding-bottom: 20px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <span style="font-size: 1.1rem; font-weight: 700; color: var(--primary);">🚀 v1.0.1</span>
-            <span style="font-size: 0.8rem; font-weight: 700; color: white; background-color: var(--primary); padding: 2px 8px; border-radius: 20px;">最新の修正</span>
-          </div>
-          <p style="font-size: 0.75rem; color: var(--text-sub); margin-top: -6px; margin-bottom: 12px;">リリース日: 2026年05月25日</p>
-          
-          <ul style="padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-            <li><strong>HTTP非セキュア環境でのクラッシュ修正</strong>: 自宅Wi-Fiなどを経由してスマホから動作検証（HTTP接続）した際、安全性のない環境として `crypto.randomUUID` がフリーズし、登録ボタンが動かなくなる致命的エラーを数学的自動ID生成への代替処理で完全解決。</li>
-            <li><strong>巨大写真の自動軽量圧縮エンジンの搭載</strong>: カメラ撮影やフォルダ（アルバム）から数MBの巨大な写真を添付した際、`LocalStorage` の容量上限（5MB制限）で保存できなくなる不具合を解消。画像のアスペクト比を完璧に維持しつつ最大800pxに自動縮小し、画質を保ったまま約1/50（50KB-100KB）に超軽量JPEG圧縮する機能を搭載。</li>
-            <li><strong>詳細画面の写真全画面表示（Contain）</strong>: 詳細シート内で写真の一部が切り取られて料理全体が見えなくなってしまう現象を、`object-fit: contain` とプレミアムな Cupertino ダークスレート背景への置き換えで解決。お皿全体の盛り付けが100%美しく表示されるようになりました。</li>
-            <li><strong>タイポグラフィInfoボタン（i）のブラッシュアップ</strong>: アプリのヘッダーに配置された情報マークを、チープな絵文字からクラシックで優美なセリフ体（Georgia）の「*i*」アイコンに刷新。ホバー時に優しくオレンジへ変化するインタラクションを適用。</li>
-          </ul>
+      <div class="modal-body" style="overflow-y: auto;">
+        <div id="notifications-empty" class="empty-state" style="padding: 40px 20px;">
+          <span style="font-size: 2.5rem;">🔔</span>
+          <h3>通知はありません</h3>
+          <p>他のユーザーがいいねやコメント、フォローをするとここに表示されます。</p>
         </div>
+        <ul class="notifications-list" id="notifications-list-container" style="list-style: none; padding: 0; margin: 0;">
+          <!-- 動的お知らせ -->
+        </ul>
+      </div>
+    </div>
+  </div>
 
-        <!-- v1.0.0 (MAJOR RELEASE) -->
-        <div class="detail-section" style="margin-bottom: 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <span style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);">🎉 v1.0.0</span>
-            <span style="font-size: 0.8rem; color: var(--text-sub); font-weight: 500;">メジャーリリース</span>
+  <!-- Modal 6: コメント返信スレッドシート（新規） -->
+  <div class="modal-overlay" id="modal-comments">
+    <div class="modal-sheet">
+      <header class="modal-header">
+        <div></div>
+        <h3 class="modal-title">コメント・返信</h3>
+        <button class="modal-btn-close" id="btn-close-comments">閉じる</button>
+      </header>
+      <div class="modal-body comments-sheet-body" style="display: flex; flex-direction: column; height: 100%;">
+        <div class="comments-scroll-area" id="comments-list-container" style="flex: 1; overflow-y: auto; padding: 16px;">
+          <!-- コメント一覧 -->
+        </div>
+        <div class="comment-input-area" style="padding: 12px 16px; border-top: 1px solid var(--border-color); background-color: var(--card-bg); flex-shrink: 0;">
+          <form id="form-comment" style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="comment-text-input" placeholder="返信コメントを入力... (@ユーザー名 も可)" required style="flex: 1; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 20px; font-size: 0.9rem; outline: none; background-color: #F3F4F6;">
+            <button type="submit" class="icon-btn-add" style="width: 38px; height: 38px; font-size: 1.0rem; box-shadow: none; flex-shrink: 0; background: var(--primary-gradient);">✈️</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 7: ユーザー詳細プロフィールシート（新規） -->
+  <div class="modal-overlay" id="modal-user-profile">
+    <div class="modal-sheet">
+      <header class="modal-header">
+        <div></div>
+        <h3 class="modal-title" id="user-profile-title">プロフィール</h3>
+        <button class="modal-btn-close" id="btn-close-user-profile">閉じる</button>
+      </header>
+      <div class="modal-body" style="overflow-y: auto; padding: 16px;">
+        <div class="profile-summary-card" style="background-color: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color); padding: 16px; text-align: left;">
+          <div class="profile-avatar-row" style="display: flex; gap: 16px; align-items: center;">
+            <div class="profile-avatar-wrapper" style="width: 70px; height: 70px; border-radius: 50%; overflow: hidden; background-color: var(--primary-light);">
+              <img src="" id="user-profile-avatar" class="profile-avatar-img" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/5778/5778508.png'">
+            </div>
+            <div class="profile-meta" style="flex: 1;">
+              <h2 id="user-profile-username" style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin: 0;">ユーザー名</h2>
+              <p id="user-profile-bio" style="font-size: 0.8rem; color: var(--text-sub); margin-top: 4px; margin-bottom: 0;">紹介文</p>
+            </div>
           </div>
-          <p style="font-size: 0.75rem; color: var(--text-sub); margin-top: -6px; margin-bottom: 12px;">リリース日: 2026年05月25日</p>
           
-          <ul style="padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 8px; color: var(--text-sub);">
-            <li><strong>スマート食材在庫連動</strong>: 冷蔵庫の食材をチェックして「晩ごはん」を記録すると、自動で冷蔵庫の残り数量から全量/一部をマイナス計算するスマート在庫連携仕様。</li>
-            <li><strong>AIによるバックグラウンド食事要素分析</strong>: 料理名とレシピメモ、使用食材からバックグラウンドで食事の「構成要素（鍋、炒め物、サラダ、スープなど）」を全自動解析。好みの割合をゲージ表示する自動プロファイラーの実装。</li>
-            <li><strong>在庫 ✕ AI好み連動のパーソナライズ献立提案</strong>: AI解析による最近の好みと、冷蔵庫の期限がやばい食材を掛け合わせて「今日作れるおすすめメニュー」を40種類以上のバリエーションから自動推薦。</li>
-            <li><strong>小数点第一位まで指定できる「星評価スライダー」</strong>: 滑らかなiOS風レンジスライダー（`0.1` 刻み）の実装と、小数値に合わせて星がミリ単位で塗られる部分星塗りCSSの実装。</li>
-            <li><strong>買い物メモ（スライド削除対応）</strong>: 在庫切れ食材の自動転送機能、およびスライドイン操作によるスマートな個別削除UI。</li>
-          </ul>
+          <div class="profile-stats-bar" style="display: flex; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 12px; justify-content: space-around; text-align: center;">
+            <div class="profile-stat-item">
+              <span class="stat-num" id="user-profile-following-count" style="display: block; font-size: 1.15rem; font-weight: 700; color: var(--text-main);">0</span>
+              <span class="stat-lbl" style="font-size: 0.7rem; color: var(--text-sub);">フォロー</span>
+            </div>
+            <div class="profile-stat-item">
+              <span class="stat-num" id="user-profile-followers-count" style="display: block; font-size: 1.15rem; font-weight: 700; color: var(--text-main);">0</span>
+              <span class="stat-lbl" style="font-size: 0.7rem; color: var(--text-sub);">フォロワー</span>
+            </div>
+            <div class="profile-stat-item">
+              <span class="stat-num" id="user-profile-shared-count" style="display: block; font-size: 1.15rem; font-weight: 700; color: var(--text-main);">0</span>
+              <span class="stat-lbl" style="font-size: 0.7rem; color: var(--text-sub);">共有レシピ</span>
+            </div>
+          </div>
+          
+          <div style="margin-top: 16px;">
+            <button class="primary-btn" id="btn-follow-action" style="width: 100%; border-radius: 20px; font-weight: 700; padding: 10px; background: var(--primary-gradient); color: white; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(249, 115, 22, 0.15);">フォローする</button>
+          </div>
         </div>
         
+        <div class="dashboard-section" style="margin-top: 24px;">
+          <div class="section-header">
+            <h3>このユーザーの共有レシピ</h3>
+          </div>
+          <div class="timeline-list" id="user-profile-shared-list" style="margin-top: 10px;">
+            <!-- 他ユーザーの共有料理カード一覧 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 8: カスタムフォルダ作成モーダル（新規） -->
+  <div class="modal-overlay" id="modal-create-folder" style="align-items: center;">
+    <div class="modal-sheet" style="height: auto; max-height: 260px; width: calc(100% - 40px); margin: 20px; border-radius: 16px;">
+      <header class="modal-header">
+        <button class="modal-btn-cancel" id="btn-cancel-create-folder">キャンセル</button>
+        <h3 class="modal-title">フォルダ作成</h3>
+        <button class="modal-btn-save" id="btn-save-folder" disabled>作成</button>
+      </header>
+      <div class="modal-body" style="padding: 16px;">
+        <div class="form-section" style="margin: 0;">
+          <label class="form-label">コレクションフォルダ名</label>
+          <input type="text" id="new-folder-name" class="form-input" placeholder="例: 中華, 鍋, また作りたい" required>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 9: カスタムフォルダ詳細（お気に入り一覧）シート（新規） -->
+  <div class="modal-overlay" id="modal-folder-detail">
+    <div class="modal-sheet">
+      <header class="modal-header">
+        <div></div>
+        <h3 class="modal-title" id="folder-detail-title">コレクション一覧</h3>
+        <button class="modal-btn-close" id="btn-close-folder-detail">閉じる</button>
+      </header>
+      <div class="modal-body" style="overflow-y: auto;">
+        <div id="folder-detail-empty" class="empty-state" style="padding: 40px 20px;">
+          <span style="font-size: 2.5rem;">📁</span>
+          <h3>フォルダは空です</h3>
+          <p>お料理の詳細画面でお気に入りに登録して、このフォルダに整理しましょう！</p>
+        </div>
+        <div class="timeline-list" id="folder-detail-list-container" style="padding: 0 16px;">
+          <!-- フォルダ内のブックマークされたカード一覧 -->
+        </div>
       </div>
     </div>
   </div>
