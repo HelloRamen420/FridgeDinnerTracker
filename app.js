@@ -55,7 +55,18 @@ const state = {
   }
 };
 
-// ─── 2. お役立ちユーティリティ ───
+// 安全なUUID生成関数 (HTTP非セキュアコンテキスト下でも動作するフォールバック付)
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  // 非セキュア環境 (HTTP経由でのスマホ検証時など) のためのフォールバック
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 // 日本語の全角数字を半角数字に自動変換してFloatパースする関数
 function parseJapaneseFloat(str) {
@@ -633,7 +644,7 @@ function renderFridge() {
       const exists = state.shoppingList.some(item => item.text === `${name} (${unit})`);
       if (!exists) {
         state.shoppingList.push({
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           text: `${name} (${unit})`,
           checked: false
         });
@@ -997,7 +1008,7 @@ btnSaveIngredient.addEventListener('click', (e) => {
   } else {
     // 新規追加処理
     const newIng = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name,
       category,
       quantity,
@@ -1334,7 +1345,7 @@ btnSaveLog.addEventListener('click', (e) => {
   } else {
     // 新規追加処理
     const newLog = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name,
       date,
       memo,
@@ -1456,7 +1467,7 @@ if (btnAddShopping) {
     const text = shoppingNewItemInput.value.trim();
     if (text !== '') {
       state.shoppingList.push({
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         text: text,
         checked: false
       });
