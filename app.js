@@ -1493,6 +1493,13 @@ if (btnOpenInfo) {
   });
 }
 
+const btnOpenChangelog = document.getElementById('btn-open-changelog');
+if (btnOpenChangelog) {
+  btnOpenChangelog.addEventListener('click', () => {
+    openModal('modal-app-changelog');
+  });
+}
+
 // ─── 8. 買い物メモ手動操作イベント ───
 const btnAddShopping = document.getElementById('btn-add-shopping');
 const shoppingNewItemInput = document.getElementById('shopping-new-item');
