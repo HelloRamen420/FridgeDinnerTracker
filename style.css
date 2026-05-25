@@ -122,6 +122,36 @@ body {
   opacity: 0.9;
 }
 
+.icon-btn-info {
+  background: white;
+  border: 1.5px solid var(--text-sub);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--text-sub);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.35rem;
+  font-family: "Georgia", "Times New Roman", serif;
+  font-style: italic;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.icon-btn-info:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.15);
+}
+
+.icon-btn-info:active {
+  transform: scale(0.92);
+  background-color: var(--bg-color);
+}
+
 /* ─── 3. ダッシュボード・コンポーネント ─── */
 .view-body {
   padding: 0 20px;
@@ -694,7 +724,7 @@ body {
   color: var(--text-main);
 }
 
-.modal-btn-cancel, .modal-btn-close {
+.modal-btn-cancel, .modal-btn-close, .modal-btn-edit {
   background: none;
   border: none;
   color: var(--primary);
@@ -1142,4 +1172,433 @@ body {
 /* ─── 13. その他UIヘルパー ─── */
 .hidden {
   display: none !important;
+}
+
+/* ─── 14. 新規追加カスタムスタイル ─── */
+/* 数量直接入力インプット */
+.qty-input {
+  width: 52px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-color);
+  background-color: var(--bg-color);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  font-family: inherit;
+  color: var(--text-main);
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.qty-input:focus {
+  border-color: var(--primary);
+  background-color: white;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+}
+
+/* モーダル内削除ボタン */
+.form-btn-delete {
+  background-color: white;
+  border: 1.5px solid var(--red);
+  color: var(--red);
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 12px;
+  width: 100%;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.form-btn-delete:active {
+  background-color: var(--red-light);
+  transform: scale(0.98);
+}
+
+/* 数量0件時の食材カードスタイル */
+.out-of-stock-row {
+  opacity: 0.6;
+  background-color: #F9FAFB;
+}
+
+/* リスト内インライン削除ボタン */
+.row-delete-container {
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
+}
+
+.row-delete-container:last-child {
+  border-bottom: none;
+}
+
+.row-delete-btn {
+  background-color: white;
+  border: 1px solid var(--red);
+  color: var(--red);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.row-delete-btn:active {
+  background-color: var(--red-light);
+}
+
+/* 買い物メモカードスタイル */
+.shopping-card {
+  background-color: var(--card-bg);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.shopping-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+#shopping-new-item {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-color);
+  background-color: var(--bg-color);
+  font-size: 0.85rem;
+  outline: none;
+  font-family: inherit;
+  color: var(--text-main);
+  transition: border-color 0.15s ease;
+}
+
+#shopping-new-item:focus {
+  border-color: var(--primary);
+  background-color: white;
+}
+
+#btn-add-shopping {
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+#btn-add-shopping:active {
+  opacity: 0.8;
+}
+
+.shopping-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.shopping-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border-color);
+  position: relative;
+  overflow: hidden;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.shopping-item:last-child {
+  border-bottom: none;
+}
+
+.shopping-check {
+  font-size: 1.15rem;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.shopping-text {
+  flex: 1;
+  transition: all 0.2s ease;
+  color: var(--text-main);
+  word-break: break-all;
+}
+
+.shopping-item.completed .shopping-text {
+  text-decoration: line-through;
+  color: var(--text-sub);
+  opacity: 0.5;
+}
+
+/* 個別削除ボタン */
+.shopping-delete-btn {
+  background-color: var(--red);
+  color: white;
+  border: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.shopping-delete-btn:active {
+  background-color: #DC2626;
+  transform: scale(0.95);
+}
+
+.shopping-item.show-delete .shopping-delete-btn {
+  opacity: 1;
+  width: 50px;
+  padding: 4px 8px;
+  margin-left: 6px;
+}
+
+/* インラインメモ追加ボタン */
+.row-add-memo-btn {
+  background-color: white;
+  border: 1.5px solid var(--secondary);
+  color: var(--secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.row-add-memo-btn:active {
+  background-color: var(--secondary-light);
+  transform: scale(0.98);
+}
+
+/* ─── 9. 部分的星評価 (Fractional Star Rating) ─── */
+.star-rating-display {
+  position: relative;
+  display: inline-block;
+  font-size: 1.15rem;
+  letter-spacing: 2px;
+  line-height: 1;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.stars-empty {
+  color: #E5E7EB;
+}
+
+.stars-filled {
+  color: #F59E0B;
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: width 0.15s ease-out;
+}
+
+/* スライダー用コンテナと数値ラベル */
+.rating-slider-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.rating-numeric-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 32px;
+}
+
+.detail-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.detail-rating-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* カスタムレンジスライダー */
+.form-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border-color);
+  outline: none;
+  margin: 8px 0;
+  transition: background 0.15s ease;
+}
+
+.form-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(249, 115, 22, 0.35);
+  transition: transform 0.1s ease;
+}
+
+.form-slider::-webkit-slider-thumb:active {
+  transform: scale(1.2);
+}
+
+.form-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(249, 115, 22, 0.35);
+  transition: transform 0.1s ease;
+}
+
+.form-slider::-moz-range-thumb:active {
+  transform: scale(1.2);
+}
+
+/* ─── 10. AI食事構成要素分析カード (Dashboard Profile) ─── */
+.profile-card {
+  background-color: var(--card-bg);
+  border-radius: 18px;
+  padding: 18px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profile-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--secondary);
+  background-color: var(--secondary-light);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.profile-primary-element {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.profile-desc {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  line-height: 1.45;
+}
+
+.profile-stats-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+.profile-stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-stat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-stat-name-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.profile-gauge-bar-bg {
+  width: 100%;
+  height: 6px;
+  background-color: var(--bg-color);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.profile-gauge-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  width: 0;
+  background: var(--primary-gradient);
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.profile-empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px 12px;
+  gap: 8px;
+}
+
+.profile-empty-icon {
+  font-size: 2.2rem;
+  opacity: 0.7;
+}
+
+.profile-empty-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.profile-empty-text {
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  max-width: 250px;
+  line-height: 1.4;
 }

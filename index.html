@@ -31,8 +31,15 @@
       <!-- ─── A. ダッシュボード画面 ─── -->
       <section id="tab-dashboard" class="tab-pane active">
         <header class="view-header">
-          <span class="view-subtitle">Today's Overview</span>
-          <h1 class="view-title">ダッシュボード</h1>
+          <div class="header-main">
+            <div>
+              <span class="view-subtitle">Today's Overview</span>
+              <h1 class="view-title">ダッシュボード</h1>
+            </div>
+            <button class="icon-btn-info" id="btn-open-info">
+              <span class="info-icon">i</span>
+            </button>
+          </div>
         </header>
         
         <div class="view-body">
@@ -44,16 +51,32 @@
               <div class="stat-value" id="stats-fridge-count">0 品</div>
             </div>
             <div class="stat-card">
-              <div class="stat-icon icon-dinner">✨</div>
+              <div class="stat-icon icon-dinner">📋</div>
               <div class="stat-label">今週の晩ごはん</div>
               <div class="stat-value" id="stats-dinner-count">0 回</div>
+            </div>
+          </div>
+          
+          <!-- 買い物メモセクション -->
+          <div class="dashboard-section">
+            <div class="section-header">
+              <h2>買い物メモ</h2>
+            </div>
+            <div class="shopping-card">
+              <div class="shopping-input-row">
+                <input type="text" id="shopping-new-item" placeholder="買うものを入力 (例: 卵, キャベツ)">
+                <button type="button" id="btn-add-shopping">追加</button>
+              </div>
+              <ul class="shopping-list" id="dashboard-shopping-list">
+                <!-- JSで動的に買い物リスト項目が追加されます -->
+              </ul>
+
             </div>
           </div>
           
           <!-- 消費期限アラート -->
           <div class="dashboard-section">
             <div class="section-header">
-              <span class="section-icon">⚠️</span>
               <h2>消費期限アラート</h2>
               <span class="alert-badge" id="dashboard-alert-badge">0</span>
             </div>
@@ -61,17 +84,25 @@
               <!-- JSで動的に構築される警告食材カードが入る -->
             </div>
           </div>
-          
-          <!-- スマートおすすめ献立提案 -->
-          <div class="dashboard-section">
-            <div class="section-header">
-              <span class="section-icon">💡</span>
-              <h2>今日の献立アイデア</h2>
+                    <!-- AI食事の構成要素分析 -->
+            <div class="dashboard-section">
+              <div class="section-header">
+                <h2>AI食事の構成要素分析</h2>
+              </div>
+              <div class="profile-card" id="ai-preference-profile-card">
+                <!-- JSで動的生成されるカード -->
+              </div>
             </div>
-            <div class="recommendation-card" id="recipe-recommendation-card">
-              <!-- JSで動的生成されるカード -->
+            
+            <!-- スマートおすすめ献立提案 -->
+            <div class="dashboard-section">
+              <div class="section-header">
+                <h2>今日の献立アイデア</h2>
+              </div>
+              <div class="recommendation-card" id="recipe-recommendation-card">
+                <!-- JSで動的生成されるカード -->
+              </div>
             </div>
-          </div>
         </div>
       </section>
       
@@ -138,15 +169,15 @@
     <!-- 2. ボトムタブナビゲーション -->
     <nav id="bottom-navbar">
       <button class="nav-item active" data-tab="tab-dashboard">
-        <span class="nav-icon">✨</span>
+        <span class="nav-icon">📈</span>
         <span class="nav-label">ダッシュボード</span>
       </button>
       <button class="nav-item" data-tab="tab-fridge">
-        <span class="nav-icon">🧊</span>
+        <span class="nav-icon">📦</span>
         <span class="nav-label">冷蔵庫</span>
       </button>
       <button class="nav-item" data-tab="tab-logs">
-        <span class="nav-icon">🍴</span>
+        <span class="nav-icon">🍳</span>
         <span class="nav-label">晩ごはん</span>
       </button>
     </nav>
@@ -160,7 +191,7 @@
     <div class="modal-sheet">
       <header class="modal-header">
         <button class="modal-btn-cancel">キャンセル</button>
-        <h3 class="modal-title">新しい食材</h3>
+        <h3 class="modal-title" id="ingredient-modal-title">新しい食材</h3>
         <button class="modal-btn-save" id="btn-save-ingredient" disabled>保存</button>
       </header>
       
@@ -177,9 +208,13 @@
               <option value="肉類">🥩 肉類</option>
               <option value="魚介類">🐟 魚介類</option>
               <option value="野菜・果物" selected>🥬 野菜・果物</option>
-              <option value="乳製品・卵">🥛 乳製品・卵</option>
+              <option value="卵・乳製品">🥚 卵・乳製品</option>
+              <option value="練り物・豆腐">🍥 練り物・豆腐</option>
+              <option value="主食・麺・パン">🍞 主食・麺・パン</option>
               <option value="調味料">🧂 調味料</option>
-              <option value="その他">📦 その他</option>
+              <option value="飲料・ドリンク">🥤 飲料・ドリンク</option>
+              <option value="お酒">🍻 お酒</option>
+              <option value="その他・缶詰など">📦 その他・缶詰など</option>
             </select>
           </div>
           
@@ -187,7 +222,7 @@
           <div class="form-section row-split">
             <div>
               <label class="form-label">数量</label>
-              <input type="number" id="ing-qty" class="form-input" value="1" min="0.1" step="0.1" required>
+              <input type="text" id="ing-qty" class="form-input" value="1" placeholder="例: 1.5, 2" required>
             </div>
             <div>
               <label class="form-label">単位</label>
@@ -207,9 +242,14 @@
               <input type="file" id="ing-photo-input" accept="image/*" class="hidden-file-input">
               <label for="ing-photo-input" class="photo-upload-label" id="ing-photo-preview-container">
                 <div class="upload-icon">📸</div>
-                <div class="upload-text">タップして写真を撮影・追加する</div>
+                <div class="upload-text">写真を撮影・選択</div>
               </label>
             </div>
+          </div>
+          
+          <!-- 削除ボタンエリア (編集モード時のみJSで表示制御) -->
+          <div class="form-section hidden" id="ing-delete-section">
+            <button type="button" class="form-btn-delete" id="btn-delete-ingredient">この食材を削除する</button>
           </div>
           
         </form>
@@ -222,7 +262,7 @@
     <div class="modal-sheet">
       <header class="modal-header">
         <button class="modal-btn-cancel">キャンセル</button>
-        <h3 class="modal-title">晩ごはんを記録</h3>
+        <h3 class="modal-title" id="log-modal-title">晩ごはんを記録</h3>
         <button class="modal-btn-save" id="btn-save-log" disabled>記録する</button>
       </header>
       
@@ -241,13 +281,14 @@
           <!-- 星評価 -->
           <div class="form-section">
             <label class="form-label">おいしさ評価</label>
-            <div class="star-rating-picker" id="log-star-picker">
-              <span class="star-item" data-value="1">★</span>
-              <span class="star-item" data-value="2">★</span>
-              <span class="star-item" data-value="3">★</span>
-              <span class="star-item" data-value="4">★</span>
-              <span class="star-item" data-value="5">★</span>
+            <div class="rating-slider-wrapper">
+              <div class="star-rating-display">
+                <span class="stars-empty">★★★★★</span>
+                <span class="stars-filled" id="log-star-filled" style="width: 100%;">★★★★★</span>
+              </div>
+              <span class="rating-numeric-value" id="log-rating-value">5.0</span>
             </div>
+            <input type="range" id="log-rating-slider" class="form-slider" min="1.0" max="5.0" step="0.1" value="5.0">
           </div>
           
           <!-- 完成写真 -->
@@ -292,6 +333,11 @@
             </div>
           </div>
           
+          <!-- 削除ボタンエリア (編集モード時のみJSで表示制御) -->
+          <div class="form-section hidden" id="log-delete-section">
+            <button type="button" class="form-btn-delete" id="btn-delete-log">この記録を削除する</button>
+          </div>
+          
         </form>
       </div>
     </div>
@@ -301,7 +347,7 @@
   <div class="modal-overlay" id="modal-log-detail">
     <div class="modal-sheet">
       <header class="modal-header">
-        <div></div>
+        <button class="modal-btn-edit" id="btn-edit-log-trigger">編集</button>
         <h3 class="modal-title" id="detail-title">料理名</h3>
         <button class="modal-btn-close" id="btn-close-detail">閉じる</button>
       </header>
@@ -310,8 +356,11 @@
         <!-- 詳細コンテンツ -->
         <div class="detail-header-info">
           <span class="detail-date" id="detail-date">2026年05月25日</span>
-          <div class="star-rating-picker read-only" id="detail-stars">
-            <!-- JSで星が入る -->
+          <div class="detail-rating-row">
+            <div class="star-rating-display" id="detail-stars">
+              <!-- JSで動的に星幅が挿入されます -->
+            </div>
+            <span class="detail-rating-val" id="detail-stars-val">5.0</span>
           </div>
         </div>
         
@@ -322,7 +371,7 @@
         
         <!-- 使用食材タグ -->
         <div class="detail-section">
-          <h4>🍳 使用した食材</h4>
+          <h4>使用した食材</h4>
           <div class="detail-tags-container" id="detail-ingredients-tags">
             <!-- タグ -->
           </div>
@@ -330,7 +379,7 @@
         
         <!-- マークダウンメモ -->
         <div class="detail-section memo-display-section">
-          <h4>📝 メモ・レシピ</h4>
+          <h4>メモ・レシピ</h4>
           <div class="detail-markdown-rendered" id="detail-memo-rendered">
             <!-- レンダリングされたマークダウン -->
           </div>
@@ -339,6 +388,59 @@
     </div>
   </div>
 
+  <!-- Modal 4: アプリの使い方・データについて -->
+  <div class="modal-overlay" id="modal-app-info">
+    <div class="modal-sheet">
+      <header class="modal-header">
+        <div></div>
+        <h3 class="modal-title">アプリについて・使い方</h3>
+        <button class="modal-btn-close" id="btn-close-info">閉じる</button>
+      </header>
+      
+      <div class="modal-body info-sheet-body" style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); -webkit-overflow-scrolling: touch;">
+        
+        <!-- 概要 -->
+        <div style="margin-bottom: 24px; text-align: center; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+          <span style="font-size: 3rem;">🥦🍲</span>
+          <h4 style="font-size: 1.25rem; font-weight: 700; margin-top: 12px; color: var(--primary);">Fridge Dinner Tracker</h4>
+          <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 4px;">冷蔵庫在庫 × AI構成要素分析による献立支援PWA</p>
+        </div>
+
+        <!-- 使い方セクション -->
+        <div class="detail-section" style="margin-bottom: 24px;">
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); border-left: 3px solid var(--primary); padding-left: 8px; margin-bottom: 12px;">💡 アプリの主な使い方</h4>
+          <ul style="padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+            <li><strong>食材を登録する</strong>: 「冷蔵庫」タブの「＋」ボタンから食材を追加します。数量や消費期限を登録することで、期限間近 of 食材が自動アラートされます。</li>
+            <li><strong>晩ごはんを記録する</strong>: 「履歴」タブの「＋」ボタンから今日の夕食を記録します。チェックした食材は冷蔵庫の在庫から<strong>自動的に減算</strong>されます。</li>
+            <li><strong>AIによる自動構成要素分析</strong>: 晩ごはんを記録すると、使用した食材やレシピメモをAIが自動解析し、ダッシュボードの分析ゲージに「鍋」「サラダ」「汁物」などの食事バランスが反映されます。</li>
+            <li><strong>インテリジェント献立アイデア</strong>: 過去の料理バランス（AI傾向）と、現在の冷蔵庫在庫（期限が近いもの）を掛け合わせ、ダッシュボードに「今日作れるおすすめメニュー」が自動提案されます。</li>
+            <li><strong>詳細の確認と編集・削除</strong>: 履歴カードをタップすると詳細が表示されます。詳細ヘッダーの「編集」から記録を修正したり、削除することができます（※在庫数は連動しません）。</li>
+          </ul>
+        </div>
+        
+        <!-- データセクション -->
+        <div class="detail-section" style="margin-bottom: 16px;">
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); border-left: 3px solid var(--primary); padding-left: 8px; margin-bottom: 12px;">🛡️ データ保存と安全について</h4>
+          <div style="background-color: var(--bg-color); padding: 12px 16px; border-radius: 8px; font-size: 0.85rem; color: var(--text-main);">
+            <p style="margin: 0 0 8px 0;"><strong>データはどこに保存されていますか？</strong></p>
+            <p style="margin: 0 0 12px 0; color: var(--text-sub);">
+              本アプリのすべてのデータは、お使いのブラウザ専用のローカル保存領域（<strong>`LocalStorage`</strong>）に保存されます。サーバーへ送信されることはなく、端末内に安全に保管されます。
+            </p>
+            <p style="margin: 0 0 8px 0;"><strong>データが消えてしまうのを防ぐには？</strong></p>
+            <ul style="padding-left: 20px; margin: 0; color: var(--text-sub); display: flex; flex-direction: column; gap: 4px;">
+              <li>ブラウザ設定で「閲覧履歴・Cookie・サイトデータの全削除」を手動で行うと消去されます。</li>
+              <li>「シークレットモード（プライベートブラウズ）」では閉じると消えるため、通常のタブでお使いください。</li>
+              <li>アプリを変更・削除するような初期化処理はプログラム内に一切入っていないため、普段通り使う分には消えません。</li>
+            </ul>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <!-- AI食事要素分析エンジン -->
+  <script src="ai.js"></script>
   <!-- JavaScript アプリ本体 -->
   <script src="app.js"></script>
 </body>
