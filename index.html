@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>FridgeDinnerTracker - 冷蔵庫と夕食管理</title>
+  
+  <!-- PWA 設定 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="冷蔵庫夕食">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/5778/5778508.png">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS スタイル -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- アプリ本体コンテナ -->
+  <div id="app-container">
+    
+    <!-- 1. メイン表示エリア（タブ切り替え） -->
+    <main id="main-content">
+      
+      <!-- ─── A. ダッシュボード画面 ─── -->
+      <section id="tab-dashboard" class="tab-pane active">
+        <header class="view-header">
+          <span class="view-subtitle">Today's Overview</span>
+          <h1 class="view-title">ダッシュボード</h1>
+        </header>
+        
+        <div class="view-body">
+          <!-- 統計カード -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon icon-fridge">🧊</div>
+              <div class="stat-label">冷蔵庫の食材</div>
+              <div class="stat-value" id="stats-fridge-count">0 品</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon icon-dinner">✨</div>
+              <div class="stat-label">今週の晩ごはん</div>
+              <div class="stat-value" id="stats-dinner-count">0 回</div>
+            </div>
+          </div>
+          
+          <!-- 消費期限アラート -->
+          <div class="dashboard-section">
+            <div class="section-header">
+              <span class="section-icon">⚠️</span>
+              <h2>消費期限アラート</h2>
+              <span class="alert-badge" id="dashboard-alert-badge">0</span>
+            </div>
+            <div class="alert-list" id="dashboard-alert-list">
+              <!-- JSで動的に構築される警告食材カードが入る -->
+            </div>
+          </div>
+          
+          <!-- スマートおすすめ献立提案 -->
+          <div class="dashboard-section">
+            <div class="section-header">
+              <span class="section-icon">💡</span>
+              <h2>今日の献立アイデア</h2>
+            </div>
+            <div class="recommendation-card" id="recipe-recommendation-card">
+              <!-- JSで動的生成されるカード -->
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- ─── B. 冷蔵庫管理画面 ─── -->
+      <section id="tab-fridge" class="tab-pane">
+        <header class="view-header">
+          <div class="header-main">
+            <div>
+              <span class="view-subtitle">Stock Manager</span>
+              <h1 class="view-title">冷蔵庫の中身</h1>
+            </div>
+            <button class="icon-btn-add" id="btn-open-add-ingredient">
+              <span class="plus-icon">＋</span>
+            </button>
+          </div>
+        </header>
+        
+        <div class="view-body">
+          <!-- 空白状態 -->
+          <div class="empty-state" id="fridge-empty-state">
+            <div class="empty-icon">🍽️</div>
+            <h3>冷蔵庫は空っぽです</h3>
+            <p>右上の「＋」ボタンから食材を追加して、スマートな期限管理を始めましょう！</p>
+          </div>
+          
+          <!-- 食材カテゴリーリスト -->
+          <div class="fridge-list" id="fridge-list-container">
+            <!-- JSで動的に生成される食材カード -->
+          </div>
+        </div>
+      </section>
+      
+      <!-- ─── C. 晩ごはん履歴画面 ─── -->
+      <section id="tab-logs" class="tab-pane">
+        <header class="view-header">
+          <div class="header-main">
+            <div>
+              <span class="view-subtitle">Dinner History</span>
+              <h1 class="view-title">晩ごはんの記録</h1>
+            </div>
+            <button class="icon-btn-add" id="btn-open-add-log">
+              <span class="plus-icon">＋</span>
+            </button>
+          </div>
+        </header>
+        
+        <div class="view-body">
+          <!-- 空白状態 -->
+          <div class="empty-state" id="logs-empty-state">
+            <div class="empty-icon">📝</div>
+            <h3>履歴はまだありません</h3>
+            <p>今日作った料理の写真やレシピを記録して、美味しい思い出をここに残しましょう！</p>
+          </div>
+          
+          <!-- タイムライン履歴 -->
+          <div class="timeline-list" id="logs-list-container">
+            <!-- JSで動的に生成される履歴カード -->
+          </div>
+        </div>
+      </section>
+      
+    </main>
+    
+    <!-- 2. ボトムタブナビゲーション -->
+    <nav id="bottom-navbar">
+      <button class="nav-item active" data-tab="tab-dashboard">
+        <span class="nav-icon">✨</span>
+        <span class="nav-label">ダッシュボード</span>
+      </button>
+      <button class="nav-item" data-tab="tab-fridge">
+        <span class="nav-icon">🧊</span>
+        <span class="nav-label">冷蔵庫</span>
+      </button>
+      <button class="nav-item" data-tab="tab-logs">
+        <span class="nav-icon">🍴</span>
+        <span class="nav-label">晩ごはん</span>
+      </button>
+    </nav>
+    
+  </div>
+
+  <!-- ─── モーダルシート群 (iOS風スライドアップ) ─── -->
+  
+  <!-- Modal 1: 新しい食材を追加 -->
+  <div class="modal-overlay" id="modal-add-ingredient">
+    <div class="modal-sheet">
+      <header class="modal-header">
+        <button class="modal-btn-cancel">キャンセル</button>
+        <h3 class="modal-title">新しい食材</h3>
+        <button class="modal-btn-save" id="btn-save-ingredient" disabled>保存</button>
+      </header>
+      
+      <div class="modal-body">
+        <form id="form-ingredient">
+          
+          <!-- 基本情報 -->
+          <div class="form-section">
+            <label class="form-label">食材名</label>
+            <input type="text" id="ing-name" class="form-input" placeholder="例: 国産和牛バラ肉" required>
+            
+            <label class="form-label">カテゴリ</label>
+            <select id="ing-category" class="form-select">
+              <option value="肉類">🥩 肉類</option>
+              <option value="魚介類">🐟 魚介類</option>
+              <option value="野菜・果物" selected>🥬 野菜・果物</option>
+              <option value="乳製品・卵">🥛 乳製品・卵</option>
+              <option value="調味料">🧂 調味料</option>
+              <option value="その他">📦 その他</option>
+            </select>
+          </div>
+          
+          <!-- 数量と消費期限 -->
+          <div class="form-section row-split">
+            <div>
+              <label class="form-label">数量</label>
+              <input type="number" id="ing-qty" class="form-input" value="1" min="0.1" step="0.1" required>
+            </div>
+            <div>
+              <label class="form-label">単位</label>
+              <input type="text" id="ing-unit" class="form-input" value="個" placeholder="例: g, パック" required>
+            </div>
+          </div>
+          
+          <div class="form-section">
+            <label class="form-label">消費期限</label>
+            <input type="date" id="ing-expiry" class="form-input" required>
+          </div>
+          
+          <!-- 食材の写真 (カメラ撮影) -->
+          <div class="form-section">
+            <label class="form-label">食材の写真（カメラ・アルバム）</label>
+            <div class="photo-upload-card">
+              <input type="file" id="ing-photo-input" accept="image/*" class="hidden-file-input">
+              <label for="ing-photo-input" class="photo-upload-label" id="ing-photo-preview-container">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">タップして写真を撮影・追加する</div>
+              </label>
+            </div>
+          </div>
+          
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: 晩ごはんを記録 -->
+  <div class="modal-overlay" id="modal-add-log">
+    <div class="modal-sheet">
+      <header class="modal-header">
+        <button class="modal-btn-cancel">キャンセル</button>
+        <h3 class="modal-title">晩ごはんを記録</h3>
+        <button class="modal-btn-save" id="btn-save-log" disabled>記録する</button>
+      </header>
+      
+      <div class="modal-body">
+        <form id="form-log">
+          
+          <!-- 基本情報 -->
+          <div class="form-section">
+            <label class="form-label">料理名</label>
+            <input type="text" id="log-name" class="form-input" placeholder="例: 特製とろける牛丼" required>
+            
+            <label class="form-label">調理日</label>
+            <input type="date" id="log-date" class="form-input" required>
+          </div>
+          
+          <!-- 星評価 -->
+          <div class="form-section">
+            <label class="form-label">おいしさ評価</label>
+            <div class="star-rating-picker" id="log-star-picker">
+              <span class="star-item" data-value="1">★</span>
+              <span class="star-item" data-value="2">★</span>
+              <span class="star-item" data-value="3">★</span>
+              <span class="star-item" data-value="4">★</span>
+              <span class="star-item" data-value="5">★</span>
+            </div>
+          </div>
+          
+          <!-- 完成写真 -->
+          <div class="form-section">
+            <label class="form-label">完成写真</label>
+            <div class="photo-upload-card">
+              <input type="file" id="log-photo-input" accept="image/*" class="hidden-file-input">
+              <label for="log-photo-input" class="photo-upload-label" id="log-photo-preview-container">
+                <div class="upload-icon">🥘</div>
+                <div class="upload-text">料理の写真を撮影・追加する</div>
+              </label>
+            </div>
+          </div>
+          
+          <!-- 使った冷蔵庫の食材 (スマート在庫連動) -->
+          <div class="form-section">
+            <label class="form-label">使った食材（冷蔵庫から自動減算）</label>
+            <div class="fridge-checklist" id="log-fridge-checklist">
+              <!-- JSで冷蔵庫の食材がチェックリストとして展開される -->
+              <p class="checklist-empty-note">冷蔵庫に食材がありません</p>
+            </div>
+          </div>
+          
+          <!-- メモ・レシピ (Markdown) -->
+          <div class="form-section memo-editor-section">
+            <div class="memo-header">
+              <label class="form-label">メモ・レシピ (Markdown対応)</label>
+              <div class="segmented-control" id="memo-tab-control">
+                <button type="button" class="segment-item active" data-mode="edit">編集</button>
+                <button type="button" class="segment-item" data-mode="preview">プレビュー</button>
+              </div>
+            </div>
+            
+            <div class="memo-container">
+              <!-- 編集用エリア -->
+              <textarea id="log-memo" class="form-textarea" placeholder="# レシピの手順など&#13;&#10;- **太字**や *斜体*&#13;&#10;- `-` で箇条書き&#13;&#10;1. 手順を順番に記述可能"></textarea>
+              
+              <!-- プレビュー用エリア -->
+              <div id="log-memo-preview" class="markdown-preview-area hidden">
+                <span class="preview-placeholder">何も書かれていません</span>
+              </div>
+            </div>
+          </div>
+          
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: 夕食記録のディテールシート -->
+  <div class="modal-overlay" id="modal-log-detail">
+    <div class="modal-sheet">
+      <header class="modal-header">
+        <div></div>
+        <h3 class="modal-title" id="detail-title">料理名</h3>
+        <button class="modal-btn-close" id="btn-close-detail">閉じる</button>
+      </header>
+      
+      <div class="modal-body detail-sheet-body">
+        <!-- 詳細コンテンツ -->
+        <div class="detail-header-info">
+          <span class="detail-date" id="detail-date">2026年05月25日</span>
+          <div class="star-rating-picker read-only" id="detail-stars">
+            <!-- JSで星が入る -->
+          </div>
+        </div>
+        
+        <!-- メイン写真 -->
+        <div class="detail-photo-wrapper" id="detail-photo-wrapper">
+          <!-- JSで画像が挿入される -->
+        </div>
+        
+        <!-- 使用食材タグ -->
+        <div class="detail-section">
+          <h4>🍳 使用した食材</h4>
+          <div class="detail-tags-container" id="detail-ingredients-tags">
+            <!-- タグ -->
+          </div>
+        </div>
+        
+        <!-- マークダウンメモ -->
+        <div class="detail-section memo-display-section">
+          <h4>📝 メモ・レシピ</h4>
+          <div class="detail-markdown-rendered" id="detail-memo-rendered">
+            <!-- レンダリングされたマークダウン -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript アプリ本体 -->
+  <script src="app.js"></script>
+</body>
+</html>
