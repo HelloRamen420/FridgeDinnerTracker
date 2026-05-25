@@ -68,6 +68,45 @@ function generateUUID() {
   });
 }
 
+// スマホの巨大画像をローカルストレージ限界(5MB)を超えないよう圧縮・リサイズする関数 (最大幅800px, JPEG品質0.7)
+function compressAndResizeImage(file, callback) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      
+      const MAX_WIDTH = 800;
+      const MAX_HEIGHT = 800;
+      
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // JPEG形式・品質0.7（軽量かつ十分高画質）で圧縮
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      callback(compressedDataUrl);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 // 日本語の全角数字を半角数字に自動変換してFloatパースする関数
 function parseJapaneseFloat(str) {
   if (str === null || str === undefined) return null;
@@ -954,9 +993,8 @@ if (ingQtyInput) {
 ingPhotoInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (file) {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      currentIngPhotoBase64 = event.target.result;
+    compressAndResizeImage(file, (compressedDataUrl) => {
+      currentIngPhotoBase64 = compressedDataUrl;
       ingPhotoPreview.innerHTML = `
         <img src="${currentIngPhotoBase64}" class="preview-image">
         <button type="button" class="photo-remove-btn" id="btn-remove-ing-photo">×</button>
@@ -969,8 +1007,7 @@ ingPhotoInput.addEventListener('change', (e) => {
         ingPhotoInput.value = '';
         ingPhotoPreview.innerHTML = `<div class="upload-icon">📸</div><div class="upload-text">写真を撮影・選択</div>`;
       });
-    };
-    reader.readAsDataURL(file);
+    });
   }
 });
 
@@ -1142,9 +1179,8 @@ logNameInput.addEventListener('input', () => {
 logPhotoInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (file) {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      currentLogPhotoBase64 = event.target.result;
+    compressAndResizeImage(file, (compressedDataUrl) => {
+      currentLogPhotoBase64 = compressedDataUrl;
       logPhotoPreview.innerHTML = `
         <img src="${currentLogPhotoBase64}" class="preview-image">
         <button type="button" class="photo-remove-btn" id="btn-remove-log-photo">×</button>
@@ -1157,8 +1193,7 @@ logPhotoInput.addEventListener('change', (e) => {
         logPhotoInput.value = '';
         logPhotoPreview.innerHTML = `<div class="upload-icon">🥘</div><div class="upload-text">料理の写真を撮影・追加する</div>`;
       });
-    };
-    reader.readAsDataURL(file);
+    });
   }
 });
 
