@@ -16,12 +16,13 @@ const sheetDB = (() => {
   const LS_KEY_SIM_TIMELINE  = 'sheetDB_sim_timeline';
 
   // 古いURLやコピペミスのURLから、正しい新しいURLへの自動マイグレーション
-  const LEGACY_URL = 'https://script.google.com/macros/s/AKfycbxmbQHawlLlFVnTFbR1GCwA7QhcOhL7JCryFCDOoD-MQ6ZahZVm0Fb29JxxTVneeQFf5w/exec';
-  const TYPO_URL = 'https://script.google.com/macros/s/AKfycbHG7pG2fMv-TppnV_uNEYEQCcpvHLWmvkZU_fxc4L46wUV_n70PXGbVsGGEGg8lgWYHw/exec';
-  const NEW_DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbzHG7pG2fMv-TppnV_uNEYEQCcpvHLWmvkZU_fxc4L46wUV_n70PXGbVsGGEGg8lgWYHw/exec';
+  const LEGACY_URL_1 = 'https://script.google.com/macros/s/AKfycbxmbQHawlLlFVnTFbR1GCwA7QhcOhL7JCryFCDOoD-MQ6ZahZVm0Fb29JxxTVneeQFf5w/exec';
+  const LEGACY_URL_2 = 'https://script.google.com/macros/s/AKfycbHG7pG2fMv-TppnV_uNEYEQCcpvHLWmvkZU_fxc4L46wUV_n70PXGbVsGGEGg8lgWYHw/exec';
+  const LEGACY_URL_3 = 'https://script.google.com/macros/s/AKfycbzHG7pG2fMv-TppnV_uNEYEQCcpvHLWmvkZU_fxc4L46wUV_n70PXGbVsGGEGg8lgWYHw/exec';
+  const NEW_DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbyl1LcOFwGqA2MQn2E5FuV5rj-ulcMporwUZbdFtDkmtt_9Wnk05dgy8iP3XemlrzySnw/exec';
   
   const currentSaved = localStorage.getItem(LS_KEY_URL);
-  if (currentSaved === LEGACY_URL || currentSaved === TYPO_URL) {
+  if (currentSaved === LEGACY_URL_1 || currentSaved === LEGACY_URL_2 || currentSaved === LEGACY_URL_3) {
     localStorage.setItem(LS_KEY_URL, NEW_DEFAULT_URL);
   }
 
@@ -294,7 +295,7 @@ const sheetDB = (() => {
       if (!user) throw new Error('ログインが必要です');
 
       const post = {
-        id: _generateId(),
+        id: logData.id || _generateId(),
         userId: user.id,
         nickname: user.nickname || user.username,
         avatarEmoji: user.avatarEmoji || '🧑‍🍳',

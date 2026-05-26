@@ -2634,13 +2634,24 @@ function initPasswordToggles() {
   });
 }
 
+let isSyncRunning = false;
+let isSyncPending = false;
+
 /**
- * 現在のローカルの冷蔵庫・履歴・買い物メモをバックグラウンドでクラウドへ非同期同期する
+ * 現在のローカルの冷蔵庫・履歴・買い物メモをバックグラウンドでクラウドへ非同期同期する（合流・シリアライズ化）
  */
 async function triggerCloudSync() {
   if (!window.sheetDB || !sheetDB.isLive()) return;
   const user = sheetDB.getCurrentUser();
   if (!user) return;
+
+  if (isSyncRunning) {
+    isSyncPending = true;
+    return;
+  }
+
+  isSyncRunning = true;
+  isSyncPending = false;
 
   try {
     // 非同期で上書き同期実行
@@ -2648,6 +2659,12 @@ async function triggerCloudSync() {
     console.log("Cloud sync completed successfully.");
   } catch (error) {
     console.error("Cloud sync failed:", error);
+  } finally {
+    isSyncRunning = false;
+    if (isSyncPending) {
+      // 待機中の同期要求があれば、最新の状態で再度同期を呼び出す
+      triggerCloudSync();
+    }
   }
 }
 
