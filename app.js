@@ -2263,104 +2263,11 @@ function renderSearchResults(users) {
   // 検索結果からのフォロー/アンフォローボタン
   userSearchResults.querySelectorAll('.follow-list-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
-      e.stopPropagation(); // 親カードのタップイベント（プロフィール表示）を防ぐ
-      if (!currentUser) {
-        alert('ログインが必要です');
-        return;
-      }
-      const targetId = btn.getAttribute('data-userid');
-      btn.disabled = true;
-
-      const isFollowingAlready = btn.classList.contains('following');
-      try {
-        if (isFollowingAlready) {
-          // アンフォロー
-          await sheetDB.unfollow(currentUser.id, targetId);
-          btn.textContent = 'フォローする';
-          btn.classList.remove('following');
-          btn.style.background = 'var(--primary-gradient)';
-          btn.style.color = '#fff';
-          currentMyFollowingIds = currentMyFollowingIds.filter(id => String(id) !== String(targetId));
-        } else {
-          // フォロー
-          await sheetDB.follow(currentUser.id, targetId);
-          btn.textContent = 'フォロー中';
-          btn.classList.add('following');
-          btn.style.background = 'var(--primary-light)';
-          btn.style.color = 'var(--primary)';
-          currentMyFollowingIds.push(String(targetId));
-        }
-        // プロフィール統計やタイムライン表示を更新
-        if (typeof renderMyPage === 'function') renderMyPage();
-        if (typeof renderTimeline === 'function') renderTimeline();
-      } catch (err) {
-        console.error(err);
-        alert('フォロー処理に失敗しました');
-      } finally {
-        btn.disabled = false;
-      }
     });
   });
 }
 
-// その人がタイムラインに上げた料理一覧をレンダリングする
-const postsContainer = document.getElementById('user-profile-posts');
-if (postsContainer) {
-  if (!prof.posts || prof.posts.length === 0) {
-    postsContainer.innerHTML = '<p style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 32px 0; border-top: 1px solid var(--border-color); margin-top: 16px;">まだタイムライン投稿はありません</p>';
-  } else {
-    const escapeString = (str) => {
-      if (!str) return '';
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    };
 
-    postsContainer.innerHTML = `
-      <h4 style="font-size: 0.9rem; font-weight: 700; margin: 24px 0 12px; color: var(--text-main); display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-        🍳 晩ごはんの投稿一覧 <span style="font-size: 0.75rem; color: var(--text-sub); font-weight: 500;">(${prof.posts.length}件)</span>
-      </h4>
-      <div class="user-profile-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-height: 400px; overflow-y: auto; padding-top: 4px;">
-        ${prof.posts.map(post => {
-          const photoHtml = post.photo 
-            ? `<img src="${post.photo}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">`
-            : `<div style="width: 100%; height: 100%; background: var(--bg-soft); border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 8px; text-align: center; box-sizing: border-box;">
-                 <span style="font-size: 1.5rem; margin-bottom: 4px;">🍳</span>
-                 <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-main); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-all; line-height: 1.2;">${escapeString(post.dishName)}</span>
-               </div>`;
-
-          return `
-            <div class="profile-grid-item" data-postid="${post.id}" style="aspect-ratio: 1 / 1; position: relative; overflow: hidden; border-radius: 8px; cursor: pointer; border: 1px solid var(--border-color); transition: transform 0.2s ease, box-shadow 0.2s ease;">
-              ${photoHtml}
-              <div class="grid-item-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.2s ease; color: white; font-size: 0.75rem; font-weight: bold; border-radius: 8px; text-align: center; padding: 4px; box-sizing: border-box;">
-                <div style="font-size: 0.8rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 90%;">${escapeString(post.dishName)}</div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span>★ ${parseFloat(post.rating || 5).toFixed(1)}</span>
-                  <span>👤 ${formatServings(post.servings)}</span>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
-
-    // プロフィール内カードタップで詳細を開くイベント
-    postsContainer.querySelectorAll('.profile-grid-item').forEach(card => {
-      card.addEventListener('click', (e) => {
-        const postId = card.getAttribute('data-postid');
-        const post = prof.posts.find(p => p.id === postId);
-        if (post) {
-          const isMyPost = post.userId === user.id;
-          const localLog = isMyPost ? state.dinnerLogs.find(item => item.id === post.id) : null;
-          if (localLog) {
-            openLogDetailModal(localLog, true); // 自分の投稿でローカルログありなら編集可能
-          } else {
-            openLogDetailModal(post, false); // 他人の投稿またはローカルログなしなら編集不可（読み取り専用）
-          }
-        }
-      });
-    });
-  }
-}
 
 // ─── 8. 買い物メモ手動操作イベント ───
 const btnAddShopping = document.getElementById('btn-add-shopping');
@@ -2780,38 +2687,24 @@ async function openUserProfileModal(userId) {
           <h4 style="font-size: 0.9rem; font-weight: 700; margin: 24px 0 12px; color: var(--text-main); display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--border-color); padding-top: 16px;">
             🍳 晩ごはんの投稿一覧 <span style="font-size: 0.75rem; color: var(--text-sub); font-weight: 500;">(${prof.posts.length}件)</span>
           </h4>
-          <div style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 4px;">
+          <div class="user-profile-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-height: 400px; overflow-y: auto; padding-top: 4px;">
             ${prof.posts.map(post => {
-              const ratingWidth = (parseFloat(post.rating || 5) / 5) * 100;
-              const photoHtml = post.photo ? `<img src="${post.photo}" class="tl-post-photo" alt="Photo" style="width: 100%; border-radius: 12px; margin-top: 8px; max-height: 200px; object-fit: cover;">` : '';
-              const tags = (post.ingredients || []).map(ing => {
-                let label = typeof ing === 'object' ? `${ing.name} ${ing.quantity || ''}${ing.unit || ''}` : ing;
-                return `<span class="tl-post-ingredient-tag">${label}</span>`;
-              }).join('');
+              const photoHtml = post.photo 
+                ? `<img src="${post.photo}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">`
+                : `<div style="width: 100%; height: 100%; background: var(--bg-soft); border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 8px; text-align: center; box-sizing: border-box;">
+                     <span style="font-size: 1.5rem; margin-bottom: 4px;">🍳</span>
+                     <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-main); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-all; line-height: 1.2;">${escapeString(post.dishName)}</span>
+                   </div>`;
 
               return `
-                <div class="tl-post-card" data-postid="${post.id}" style="border: 1px solid var(--border-color); border-radius: 16px; padding: 14px; background: var(--card-bg); margin-bottom: 0; box-shadow: none;">
-                  <div class="tl-post-header">
-                    <div class="tl-post-avatar" style="font-size: 1.3rem;">${post.avatarEmoji || '🧑‍🍳'}</div>
-                    <div class="tl-post-author">
-                      <div class="tl-post-nickname" style="font-size: 0.85rem; font-weight: 700;">${post.nickname || '名無し'}</div>
-                      <div class="tl-post-date" style="font-size: 0.7rem;">${formatJapaneseDate(post.date)}</div>
-                    </div>
-                  </div>
+                <div class="profile-grid-item" data-postid="${post.id}" style="aspect-ratio: 1 / 1; position: relative; overflow: hidden; border-radius: 8px; cursor: pointer; border: 1px solid var(--border-color); transition: transform 0.2s ease, box-shadow 0.2s ease;">
                   ${photoHtml}
-                  <div class="tl-post-body" style="padding-top: 8px;">
-                    <div class="tl-post-dishname" style="font-size: 0.95rem; font-weight: 700; color: var(--text-main);">${post.dishName}</div>
-                    <div class="tl-post-meta" style="margin: 4px 0 8px; font-size: 0.8rem; color: var(--text-sub);">
-                      <span>👤 ${post.servings || '2人前'}</span>
-                      <span class="tl-post-rating" style="margin-left: 8px;">★ ${parseFloat(post.rating || 5).toFixed(1)}</span>
+                  <div class="grid-item-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.2s ease; color: white; font-size: 0.75rem; font-weight: bold; border-radius: 8px; text-align: center; padding: 4px; box-sizing: border-box;">
+                    <div style="font-size: 0.8rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 90%;">${escapeString(post.dishName)}</div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <span>★ ${parseFloat(post.rating || 5).toFixed(1)}</span>
+                      <span>👤 ${formatServings(post.servings)}</span>
                     </div>
-                    <div class="tl-post-ingredients" style="margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px;">${tags}</div>
-                    ${post.memo ? `
-                      <div class="tl-post-memo-section">
-                        <div class="tl-post-memo-preview" id="profile-memo-${post.id}" style="white-space: pre-wrap; line-height: 1.6; font-size: 0.82rem; color: var(--text-main);">${escapeString(post.memo)}</div>
-                        <button class="profile-markdown-toggle-btn tl-markdown-toggle-btn" data-postid="${post.id}" data-is-md="false">📝 マークダウンで表示する</button>
-                      </div>
-                    ` : ''}
                   </div>
                 </div>
               `;
@@ -2820,51 +2713,18 @@ async function openUserProfileModal(userId) {
         `;
 
         // プロフィール内カードタップで詳細を開くイベント
-        postsContainer.querySelectorAll('.tl-post-card').forEach(card => {
+        postsContainer.querySelectorAll('.profile-grid-item').forEach(card => {
           card.addEventListener('click', (e) => {
-            if (e.target.closest('.profile-markdown-toggle-btn')) {
-              return;
-            }
             const postId = card.getAttribute('data-postid');
             const post = prof.posts.find(p => p.id === postId);
             if (post) {
               const isMyPost = post.userId === user.id;
               const localLog = isMyPost ? state.dinnerLogs.find(item => item.id === post.id) : null;
               if (localLog) {
-                openLogDetailModal(localLog, true);
+                openLogDetailModal(localLog, true); // 自分の投稿でローカルログありなら編集可能
               } else {
-                openLogDetailModal(post, false);
+                openLogDetailModal(post, false); // 他人の投稿またはローカルログなしなら編集不可（読み取り専用）
               }
-            }
-          });
-        });
-
-        // マークダウン切り替えイベント
-        postsContainer.querySelectorAll('.profile-markdown-toggle-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation(); // 詳細モーダルの起動を防ぐ
-            const postId = btn.getAttribute('data-postid');
-            const memoDiv = document.getElementById(`profile-memo-${postId}`);
-            const post = prof.posts.find(p => p.id === postId);
-            if (!post || !memoDiv) return;
-
-            const isMd = btn.getAttribute('data-is-md') === 'true';
-            if (isMd) {
-              // プレーンテキストに戻す（3行制限を復元）
-              memoDiv.innerHTML = escapeString(post.memo);
-              memoDiv.style.whiteSpace = 'pre-wrap';
-              memoDiv.style.webkitLineClamp = '3';
-              memoDiv.style.display = '-webkit-box';
-              btn.innerHTML = '📝 マークダウンで表示する';
-              btn.setAttribute('data-is-md', 'false');
-            } else {
-              // マークダウンでレンダリング（行制限を完全解除）
-              memoDiv.innerHTML = `<div class="markdown-content">${renderMarkdown(post.memo)}</div>`;
-              memoDiv.style.whiteSpace = 'normal';
-              memoDiv.style.webkitLineClamp = 'none';
-              memoDiv.style.display = 'block';
-              btn.innerHTML = '📄 プレーンテキストで表示する';
-              btn.setAttribute('data-is-md', 'true');
             }
           });
         });
