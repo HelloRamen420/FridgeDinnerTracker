@@ -599,6 +599,7 @@ body {
   background-color: var(--primary-light);
   padding: 3px 8px;
   border-radius: 6px;
+  white-space: nowrap;
 }
 
 .log-card-memo-preview {
@@ -1660,6 +1661,13 @@ body {
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   animation: fadeIn 0.3s ease;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+}
+
+.tl-post-card:active {
+  transform: scale(0.985);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.02);
 }
 
 .tl-post-header {
@@ -1754,6 +1762,7 @@ body {
   font-size: 0.7rem;
   color: var(--text-sub);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .tl-post-memo-preview {
@@ -2355,4 +2364,14 @@ body {
 
 .tl-markdown-toggle-btn:active {
   transform: translateY(0);
+}
+
+/* タイムライン更新用スピンアニメーション */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinning svg {
+  animation: spin 0.8s linear infinite;
 }

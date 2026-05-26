@@ -256,6 +256,9 @@ function handleRequest(e) {
       case "deletePost":
         result = deletePost(e.parameter.postId);
         break;
+      case "isTimelineShared":
+        result = isTimelineShared(e.parameter.postId);
+        break;
 
       // ── 個人データ双方向同期 ──
       case "getUserBackupData":
@@ -672,6 +675,19 @@ function deletePost(postId) {
     }
   }
   return { ok: true };
+}
+
+/** タイムラインに指定された投稿IDがすでに共有されているかチェック */
+function isTimelineShared(postId) {
+  if (!postId) return { shared: false };
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Timeline");
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(postId)) {
+      return { shared: true };
+    }
+  }
+  return { shared: false };
 }
 
 // ════════════════════════════════════════════════

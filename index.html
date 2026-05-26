@@ -37,6 +37,12 @@
               <h1 class="view-title">タイムライン</h1>
             </div>
             <div style="display: flex; gap: 8px;">
+              <button class="icon-btn-info" id="btn-refresh-timeline" title="タイムライン更新">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+                  <path d="M23 4v6h-6"></path>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+              </button>
               <button class="icon-btn-info" id="btn-open-search" title="ユーザー検索">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
                   <circle cx="11" cy="11" r="8"></circle>
@@ -606,6 +612,26 @@
       
       <div class="modal-body info-sheet-body" style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); -webkit-overflow-scrolling: touch;">
         
+        <!-- v1.1.0 (SNS RELEASE) -->
+        <div class="detail-section" style="margin-bottom: 24px; border-bottom: 1px dashed var(--border-color); padding-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-size: 1.1rem; font-weight: 700; color: var(--primary);">🚀 v1.1.0</span>
+            <span style="font-size: 0.8rem; font-weight: 700; color: white; background-color: var(--primary); padding: 2px 8px; border-radius: 20px;">SNSリリース</span>
+          </div>
+          <p style="font-size: 0.75rem; color: var(--text-sub); margin-top: -6px; margin-bottom: 12px;">リリース日: 2026年05月26日</p>
+          
+          <ul style="padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+            <li><strong>タイムライン料理タップでの詳細表示＆編集制御</strong>: タイムラインや他ユーザープロフィール上のカードをタップするだけで、レシピ詳細や写真、評価、人数などをCupertino調のポップアップモーダルで閲覧可能に。ご自身の投稿であれば通常通り「編集」ができ、他人の投稿は「読み取り専用（編集不可）」として出し分ける高度なセキュリティ連動を実装。</li>
+            <li><strong>メモの動的マークダウン展開（Line Clamp解除）</strong>: タイムライン上のカードで「📝 マークダウンで表示する」を押すと、CSSの3行表示制限をプログラムで動的に解除。カードが滑らかに下方向へ伸びて長いレシピメモもすべて（全文）読める画期的なUXを採用。</li>
+            <li><strong>一撃フォロー/アンフォローボタン</strong>: フォロー/フォロワー一覧やユーザー検索のリストにおいて、「プロフィール」ボタンのすぐ隣に「フォローする」/「フォロー中」ボタンを新設。画面を切り替える手間を省き、ダイレクトにオン/オフできるように操作性を向上。</li>
+            <li><strong>手動更新（リフレッシュ）ボタンの搭載</strong>: タイムライン右上に「🔄」更新ボタンを新設。タップ時にCupertino調のスピンアニメーションが滑らかに作動し、二重リクエスト防止の物理ロック機能（連打無効）や最低スピン（500ms）保証を伴って、いつでも最新フィードを再取得可能に。</li>
+            <li><strong>食材タグ表示の最適化（改行防止・ラップ完全表示）</strong>: 食材タグ（および食事要素タグ）に `white-space: nowrap` を適用。食材名や数量が不自然に途中で改行されて崩れる問題を完全に防止し、バッジ型カプセル単位で綺麗に並ぶようレイアウトを最適化。</li>
+            <li><strong>データベース並行書き込み競合（LockService）による重複防止</strong>: 素早い連続操作や通信の多重発生時でも、GASサーバー側での「スクリプト排他ロック（LockService 15秒待機）」と「Upsert型上書き更新」により、同じ投稿がスプレッドシートやタイムラインに何行も重複登録されてしまうバグを100%徹底解消。</li>
+            <li><strong>合流（Coalesced）シリアライズ同期方式</strong>: クライアント側でどれだけ高速に食材の追加や削除を行っても、通信中のリクエストは常に最大1本に制限され、次の変更は通信完了後に最新状態で自動的にマージされる「安全な同期のキュー化」を実装。</li>
+            <li><strong>PWAセッション保護とサイレントマージ</strong>: ログイン状態でブラウザをリロードした際、ローカルの未同期データや状態がクリアされずに綺麗にマージ同期が走り、無駄な引き継ぎ確認ダイアログ（confirm）もサイレントに抑制される完璧なネイティブアプリ体験。</li>
+          </ul>
+        </div>
+
         <!-- v1.0.1 (HOTFIX) -->
         <div class="detail-section" style="margin-bottom: 24px; border-bottom: 1px dashed var(--border-color); padding-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">

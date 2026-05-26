@@ -19,10 +19,11 @@ const sheetDB = (() => {
   const LEGACY_URL_1 = 'https://script.google.com/macros/s/AKfycbxmbQHawlLlFVnTFbR1GCwA7QhcOhL7JCryFCDOoD-MQ6ZahZVm0Fb29JxxTVneeQFf5w/exec';
   const LEGACY_URL_2 = 'https://script.google.com/macros/s/AKfycbHG7pG2fMv-TppnV_uNEYEQCcpvHLWmvkZU_fxc4L46wUV_n70PXGbVsGGEGg8lgWYHw/exec';
   const LEGACY_URL_3 = 'https://script.google.com/macros/s/AKfycbzHG7pG2fMv-TppnV_uNEYEQCcpvHLWmvkZU_fxc4L46wUV_n70PXGbVsGGEGg8lgWYHw/exec';
-  const NEW_DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbyl1LcOFwGqA2MQn2E5FuV5rj-ulcMporwUZbdFtDkmtt_9Wnk05dgy8iP3XemlrzySnw/exec';
+  const LEGACY_URL_4 = 'https://script.google.com/macros/s/AKfycbyl1LcOFwGqA2MQn2E5FuV5rj-ulcMporwUZbdFtDkmtt_9Wnk05dgy8iP3XemlrzySnw/exec';
+  const NEW_DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbw0miQEERSeA-F1BM4lyhpRes1uQ0qFFNVtA-UnaWK-6_MX3QNaxqNJuex72xrv94ux4g/exec';
   
   const currentSaved = localStorage.getItem(LS_KEY_URL);
-  if (currentSaved === LEGACY_URL_1 || currentSaved === LEGACY_URL_2 || currentSaved === LEGACY_URL_3) {
+  if (currentSaved === LEGACY_URL_1 || currentSaved === LEGACY_URL_2 || currentSaved === LEGACY_URL_3 || currentSaved === LEGACY_URL_4) {
     localStorage.setItem(LS_KEY_URL, NEW_DEFAULT_URL);
   }
 
@@ -317,6 +318,21 @@ const sheetDB = (() => {
       tl.unshift(post); // 新しいものが先頭
       _simSave(LS_KEY_SIM_TIMELINE, tl);
       return { ok: true, post };
+    },
+
+    /** 特定の投稿がタイムラインに共有されているか確認 */
+    async isTimelineShared(postId) {
+      if (!postId) return false;
+      if (_isLive()) {
+        try {
+          const res = await _callGAS('isTimelineShared', { postId });
+          return !!res.shared;
+        } catch (e) {
+          return true; // エラー時は安全のために共有中とみなす
+        }
+      }
+      const tl = _simLoad(LS_KEY_SIM_TIMELINE, []);
+      return tl.some(p => String(p.id) === String(postId));
     },
 
     /** タイムライン全件取得 (新しい順) */

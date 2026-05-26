@@ -980,7 +980,7 @@ async function renderTimeline() {
       const photoHtml = post.photo ? `<img src="${post.photo}" class="tl-post-photo" alt="Photo">` : '';
 
       return `
-        <div class="tl-post-card">
+        <div class="tl-post-card" data-postid="${post.id}">
           <div class="tl-post-header">
             <div class="tl-post-avatar" data-userid="${post.userId}">${post.avatarEmoji || '🧑‍🍳'}</div>
             <div class="tl-post-author">
@@ -1010,15 +1010,41 @@ async function renderTimeline() {
 
     // プロフィールモーダルを開くイベント
     container.querySelectorAll('.tl-post-avatar').forEach(avatar => {
-      avatar.addEventListener('click', () => {
+      avatar.addEventListener('click', (e) => {
+        e.stopPropagation(); // 詳細モーダルの起動を防ぐ
         const userId = avatar.getAttribute('data-userid');
         openUserProfileModal(userId);
       });
     });
 
+    // カードタップで詳細を開くイベント
+    container.querySelectorAll('.tl-post-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        // 特定アクションボタンやアバター等のクリック時は詳細を開かない
+        if (e.target.closest('.tl-post-avatar') || 
+            e.target.closest('.icon-btn-info') || 
+            e.target.closest('.tl-markdown-toggle-btn')) {
+          return;
+        }
+
+        const postId = card.getAttribute('data-postid');
+        const post = posts.find(p => p.id === postId);
+        if (post) {
+          const isMyPost = post.userId === user.id;
+          const localLog = isMyPost ? state.dinnerLogs.find(item => item.id === post.id) : null;
+          if (localLog) {
+            openLogDetailModal(localLog, true); // 自分の投稿かつローカルログありなら編集可能
+          } else {
+            openLogDetailModal(post, false); // 他人の投稿なら編集不可
+          }
+        }
+      });
+    });
+
     // マークダウン切り替えイベント
     container.querySelectorAll('.tl-markdown-toggle-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation(); // 詳細モーダルの起動を防ぐ
         const postId = btn.getAttribute('data-postid');
         const memoDiv = document.getElementById(`memo-${postId}`);
         const post = posts.find(p => p.id === postId);
@@ -1026,15 +1052,19 @@ async function renderTimeline() {
 
         const isMd = btn.getAttribute('data-is-md') === 'true';
         if (isMd) {
-          // プレーンテキストに戻す
+          // プレーンテキストに戻す（3行制限を復元）
           memoDiv.innerHTML = escapeString(post.memo);
           memoDiv.style.whiteSpace = 'pre-wrap';
+          memoDiv.style.webkitLineClamp = '3';
+          memoDiv.style.display = '-webkit-box';
           btn.innerHTML = '📝 マークダウンで表示する';
           btn.setAttribute('data-is-md', 'false');
         } else {
-          // マークダウンでレンダリング
+          // マークダウンでレンダリング（行制限を完全解除）
           memoDiv.innerHTML = `<div class="markdown-content">${renderMarkdown(post.memo)}</div>`;
           memoDiv.style.whiteSpace = 'normal';
+          memoDiv.style.webkitLineClamp = 'none';
+          memoDiv.style.display = 'block';
           btn.innerHTML = '📄 プレーンテキストで表示する';
           btn.setAttribute('data-is-md', 'true');
         }
@@ -1519,10 +1549,22 @@ function openLogModal(defaultDishName = '', existingLog = null) {
       shareDesc.textContent = '※ログインするとタイムラインへの共有機能が利用できます。';
       shareDesc.style.color = 'var(--text-sub)';
     } else {
-      shareCheckbox.checked = true;
       shareCheckbox.disabled = false;
       shareDesc.textContent = 'このレシピをSNSタイムラインに投稿し、他の人と共有します。';
       shareDesc.style.color = 'var(--text-sub)';
+
+      // 編集時はすでに共有されているか非同期で確認して反映
+      if (existingLog) {
+        // ロード中は仮で true にしておく
+        shareCheckbox.checked = true;
+        sheetDB.isTimelineShared(existingLog.id).then(isShared => {
+          shareCheckbox.checked = isShared;
+        }).catch(() => {
+          shareCheckbox.checked = true;
+        });
+      } else {
+        shareCheckbox.checked = true;
+      }
     }
   }
 
@@ -1837,7 +1879,7 @@ btnSaveLog.addEventListener('click', async (e) => {
 
     state.save();
 
-    // タイムライン共有スイッチがONかつログイン済みの場合、非同期でタイムラインにも自動投稿する
+    // タイムライン共有スイッチがONかつログイン済みの場合、非同期でタイムラインにも自動投稿・削除トグル処理を行う
     const shareCheckbox = document.getElementById('log-share-timeline');
     if (shareCheckbox && shareCheckbox.checked) {
       const currentUser = sheetDB.getCurrentUser();
@@ -1854,6 +1896,20 @@ btnSaveLog.addEventListener('click', async (e) => {
             renderTimeline();
           } catch (err) {
             console.error("Auto timeline share failed:", err);
+          }
+        }
+      }
+    } else {
+      // 共有チェックがオフの場合で、編集時であれば、既存のタイムライン投稿を削除する（トグル機能）
+      if (editingLogId) {
+        const currentUser = sheetDB.getCurrentUser();
+        if (currentUser) {
+          try {
+            await sheetDB.deletePost(editingLogId);
+            console.log("Automatically deleted from timeline.");
+            renderTimeline();
+          } catch (err) {
+            console.error("Auto timeline delete failed:", err);
           }
         }
       }
@@ -1881,10 +1937,16 @@ const detailPhotoWrapper = document.getElementById('detail-photo-wrapper');
 const detailTags = document.getElementById('detail-ingredients-tags');
 const detailMemoRendered = document.getElementById('detail-memo-rendered');
 
-function openLogDetailModal(log) {
+function openLogDetailModal(log, isEditable = true) {
   activeDetailLog = log; // 現在詳細表示中のログを保持
-  detailTitle.textContent = log.name;
+  detailTitle.textContent = log.name || log.dishName;
   detailDate.textContent = formatJapaneseDate(log.date);
+
+  // 編集ボタンの表示制御
+  const btnEditLogTrigger = document.getElementById('btn-edit-log-trigger');
+  if (btnEditLogTrigger) {
+    btnEditLogTrigger.style.display = isEditable ? 'block' : 'none';
+  }
 
   // 人数表示の更新
   const servingsEl = document.getElementById('detail-servings');
@@ -1905,7 +1967,7 @@ function openLogDetailModal(log) {
 
   // 写真
   if (log.photo) {
-    detailPhotoWrapper.innerHTML = `<img src="${log.photo}" alt="${log.name}">`;
+    detailPhotoWrapper.innerHTML = `<img src="${log.photo}" alt="${log.name || log.dishName}">`;
     detailPhotoWrapper.classList.remove('hidden');
   } else {
     detailPhotoWrapper.innerHTML = '';
@@ -1913,7 +1975,7 @@ function openLogDetailModal(log) {
   }
 
   // 食材タグ
-  const ingredientsArray = log.ingredientsUsed || log.usedIngredients || [];
+  const ingredientsArray = log.ingredientsUsed || log.usedIngredients || log.ingredients || [];
   if (ingredientsArray.length > 0) {
     detailTags.parentElement.classList.remove('hidden');
     detailTags.innerHTML = ingredientsArray.map(item => {
@@ -1963,6 +2025,26 @@ if (btnDeleteLog) {
   });
 }
 
+// タイムライン手動更新ボタンのイベントバインド
+const btnRefreshTimeline = document.getElementById('btn-refresh-timeline');
+if (btnRefreshTimeline) {
+  btnRefreshTimeline.addEventListener('click', async () => {
+    btnRefreshTimeline.classList.add('spinning');
+    btnRefreshTimeline.disabled = true;
+    try {
+      await renderTimeline();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      // スピンアニメーションが滑らかに見えるよう最低500msは回す
+      setTimeout(() => {
+        btnRefreshTimeline.classList.remove('spinning');
+        btnRefreshTimeline.disabled = false;
+      }, 500);
+    }
+  });
+}
+
 // アプリ情報モーダルのイベントバインド
 const btnOpenInfo = document.getElementById('btn-open-info');
 if (btnOpenInfo) {
@@ -1986,6 +2068,7 @@ const btnClearSearch = document.getElementById('btn-clear-search');
 const userSearchResults = document.getElementById('user-search-results');
 
 let searchableUsers = [];
+let currentMyFollowingIds = [];
 
 if (btnOpenSearch) {
   btnOpenSearch.addEventListener('click', async () => {
@@ -2005,6 +2088,14 @@ if (btnOpenSearch) {
 
       // 自分以外のユーザーを検索対象にする
       searchableUsers = allUsers.filter(u => !currentUser || u.id !== currentUser.id);
+
+      // 現在フォローしている人のIDリストを取得
+      if (currentUser) {
+        const followRes = await sheetDB.getFollowingIds(currentUser.id);
+        currentMyFollowingIds = (followRes || []).map(String);
+      } else {
+        currentMyFollowingIds = [];
+      }
 
       // 初期状態：全員を表示
       renderSearchResults(searchableUsers);
@@ -2061,9 +2152,27 @@ function renderSearchResults(users) {
     return;
   }
 
+  const currentUser = sheetDB.getCurrentUser();
+
   userSearchResults.innerHTML = users.map(u => {
     const emoji = u.avatarEmoji || '🧑‍🍳';
     const dispName = u.nickname || u.username;
+    const isMe = currentUser && String(currentUser.id) === String(u.id);
+    const isFollowing = currentMyFollowingIds.includes(String(u.id));
+    const followBtnHtml = isMe ? '' : `
+      <button type="button" class="follow-list-btn ${isFollowing ? 'following' : ''}" data-userid="${u.id}" style="
+        background: ${isFollowing ? 'var(--primary-light)' : 'var(--primary-gradient)'};
+        color: ${isFollowing ? 'var(--primary)' : '#fff'};
+        border: none;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      ">${isFollowing ? 'フォロー中' : 'フォローする'}</button>
+    `;
+
     return `
       <div class="search-user-card" data-userid="${u.id}">
         <div class="search-user-info">
@@ -2073,7 +2182,10 @@ function renderSearchResults(users) {
             <span class="search-user-username">@${u.username}</span>
           </div>
         </div>
-        <button type="button" class="search-view-profile-btn" data-userid="${u.id}">プロフィール</button>
+        <div class="search-user-actions" style="display: flex; gap: 8px; align-items: center;">
+          <button type="button" class="search-view-profile-btn" data-userid="${u.id}">プロフィール</button>
+          ${followBtnHtml}
+        </div>
       </div>
     `;
   }).join('');
@@ -2096,6 +2208,48 @@ function renderSearchResults(users) {
       if (targetUserId) {
         closeModal('modal-user-search');
         openUserProfileModal(targetUserId);
+      }
+    });
+  });
+
+  // 検索結果からのフォロー/アンフォローボタン
+  userSearchResults.querySelectorAll('.follow-list-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation(); // 親カードのタップイベント（プロフィール表示）を防ぐ
+      if (!currentUser) {
+        alert('ログインが必要です');
+        return;
+      }
+      const targetId = btn.getAttribute('data-userid');
+      btn.disabled = true;
+
+      const isFollowingAlready = btn.classList.contains('following');
+      try {
+        if (isFollowingAlready) {
+          // アンフォロー
+          await sheetDB.unfollow(currentUser.id, targetId);
+          btn.textContent = 'フォローする';
+          btn.classList.remove('following');
+          btn.style.background = 'var(--primary-gradient)';
+          btn.style.color = '#fff';
+          currentMyFollowingIds = currentMyFollowingIds.filter(id => String(id) !== String(targetId));
+        } else {
+          // フォロー
+          await sheetDB.follow(currentUser.id, targetId);
+          btn.textContent = 'フォロー中';
+          btn.classList.add('following');
+          btn.style.background = 'var(--primary-light)';
+          btn.style.color = 'var(--primary)';
+          currentMyFollowingIds.push(String(targetId));
+        }
+        // プロフィール統計やタイムライン表示を更新
+        if (typeof renderMyPage === 'function') renderMyPage();
+        if (typeof renderTimeline === 'function') renderTimeline();
+      } catch (err) {
+        console.error(err);
+        alert('フォロー処理に失敗しました');
+      } finally {
+        btn.disabled = false;
       }
     });
   });
@@ -2505,6 +2659,112 @@ async function openUserProfileModal(userId) {
       btnFollow.classList.remove('following');
     }
 
+    // その人がタイムラインに上げた料理一覧をレンダリングする
+    const postsContainer = document.getElementById('user-profile-posts');
+    if (postsContainer) {
+      if (!prof.posts || prof.posts.length === 0) {
+        postsContainer.innerHTML = '<p style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 32px 0; border-top: 1px solid var(--border-color); margin-top: 16px;">まだタイムライン投稿はありません</p>';
+      } else {
+        const escapeString = (str) => {
+          if (!str) return '';
+          return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        };
+
+        postsContainer.innerHTML = `
+          <h4 style="font-size: 0.9rem; font-weight: 700; margin: 24px 0 12px; color: var(--text-main); display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+            🍳 晩ごはんの投稿一覧 <span style="font-size: 0.75rem; color: var(--text-sub); font-weight: 500;">(${prof.posts.length}件)</span>
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 4px;">
+            ${prof.posts.map(post => {
+              const ratingWidth = (parseFloat(post.rating || 5) / 5) * 100;
+              const photoHtml = post.photo ? `<img src="${post.photo}" class="tl-post-photo" alt="Photo" style="width: 100%; border-radius: 12px; margin-top: 8px; max-height: 200px; object-fit: cover;">` : '';
+              const tags = (post.ingredients || []).map(ing => {
+                let label = typeof ing === 'object' ? `${ing.name} ${ing.quantity || ''}${ing.unit || ''}` : ing;
+                return `<span class="tl-post-ingredient-tag">${label}</span>`;
+              }).join('');
+
+              return `
+                <div class="tl-post-card" data-postid="${post.id}" style="border: 1px solid var(--border-color); border-radius: 16px; padding: 14px; background: var(--card-bg); margin-bottom: 0; box-shadow: none;">
+                  <div class="tl-post-header">
+                    <div class="tl-post-avatar" style="font-size: 1.3rem;">${post.avatarEmoji || '🧑‍🍳'}</div>
+                    <div class="tl-post-author">
+                      <div class="tl-post-nickname" style="font-size: 0.85rem; font-weight: 700;">${post.nickname || '名無し'}</div>
+                      <div class="tl-post-date" style="font-size: 0.7rem;">${formatJapaneseDate(post.date)}</div>
+                    </div>
+                  </div>
+                  ${photoHtml}
+                  <div class="tl-post-body" style="padding-top: 8px;">
+                    <div class="tl-post-dishname" style="font-size: 0.95rem; font-weight: 700; color: var(--text-main);">${post.dishName}</div>
+                    <div class="tl-post-meta" style="margin: 4px 0 8px; font-size: 0.8rem; color: var(--text-sub);">
+                      <span>👤 ${post.servings || '2人前'}</span>
+                      <span class="tl-post-rating" style="margin-left: 8px;">★ ${parseFloat(post.rating || 5).toFixed(1)}</span>
+                    </div>
+                    <div class="tl-post-ingredients" style="margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px;">${tags}</div>
+                    ${post.memo ? `
+                      <div class="tl-post-memo-section">
+                        <div class="tl-post-memo-preview" id="profile-memo-${post.id}" style="white-space: pre-wrap; line-height: 1.6; font-size: 0.82rem; color: var(--text-main);">${escapeString(post.memo)}</div>
+                        <button class="profile-markdown-toggle-btn tl-markdown-toggle-btn" data-postid="${post.id}" data-is-md="false">📝 マークダウンで表示する</button>
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+
+        // プロフィール内カードタップで詳細を開くイベント
+        postsContainer.querySelectorAll('.tl-post-card').forEach(card => {
+          card.addEventListener('click', (e) => {
+            if (e.target.closest('.profile-markdown-toggle-btn')) {
+              return;
+            }
+            const postId = card.getAttribute('data-postid');
+            const post = prof.posts.find(p => p.id === postId);
+            if (post) {
+              const isMyPost = post.userId === user.id;
+              const localLog = isMyPost ? state.dinnerLogs.find(item => item.id === post.id) : null;
+              if (localLog) {
+                openLogDetailModal(localLog, true);
+              } else {
+                openLogDetailModal(post, false);
+              }
+            }
+          });
+        });
+
+        // マークダウン切り替えイベント
+        postsContainer.querySelectorAll('.profile-markdown-toggle-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 詳細モーダルの起動を防ぐ
+            const postId = btn.getAttribute('data-postid');
+            const memoDiv = document.getElementById(`profile-memo-${postId}`);
+            const post = prof.posts.find(p => p.id === postId);
+            if (!post || !memoDiv) return;
+
+            const isMd = btn.getAttribute('data-is-md') === 'true';
+            if (isMd) {
+              // プレーンテキストに戻す（3行制限を復元）
+              memoDiv.innerHTML = escapeString(post.memo);
+              memoDiv.style.whiteSpace = 'pre-wrap';
+              memoDiv.style.webkitLineClamp = '3';
+              memoDiv.style.display = '-webkit-box';
+              btn.innerHTML = '📝 マークダウンで表示する';
+              btn.setAttribute('data-is-md', 'false');
+            } else {
+              // マークダウンでレンダリング（行制限を完全解除）
+              memoDiv.innerHTML = `<div class="markdown-content">${renderMarkdown(post.memo)}</div>`;
+              memoDiv.style.whiteSpace = 'normal';
+              memoDiv.style.webkitLineClamp = 'none';
+              memoDiv.style.display = 'block';
+              btn.innerHTML = '📄 プレーンテキストで表示する';
+              btn.setAttribute('data-is-md', 'true');
+            }
+          });
+        });
+      }
+    }
+
     openModal('modal-user-profile');
   } catch(e) {
     alert('プロフィールを取得できませんでした');
@@ -2717,9 +2977,32 @@ async function openFollowListModal(targetUserId, type) {
       return;
     }
 
+    const currentUser = sheetDB.getCurrentUser();
+    let myFollowingIds = [];
+    if (currentUser) {
+      const followRes = await sheetDB.getFollowingIds(currentUser.id);
+      myFollowingIds = (followRes || []).map(String);
+    }
+
     container.innerHTML = filteredUsers.map(u => {
       const emoji = u.avatarEmoji || '🧑‍🍳';
       const dispName = u.nickname || u.username;
+      const isMe = currentUser && String(currentUser.id) === String(u.id);
+      const isFollowing = myFollowingIds.includes(String(u.id));
+      const followBtnHtml = isMe ? '' : `
+        <button type="button" class="follow-list-btn ${isFollowing ? 'following' : ''}" data-userid="${u.id}" style="
+          background: ${isFollowing ? 'var(--primary-light)' : 'var(--primary-gradient)'};
+          color: ${isFollowing ? 'var(--primary)' : '#fff'};
+          border: none;
+          padding: 6px 14px;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        ">${isFollowing ? 'フォロー中' : 'フォローする'}</button>
+      `;
+
       return `
         <div class="search-user-card" data-userid="${u.id}">
           <div class="search-user-info">
@@ -2729,7 +3012,10 @@ async function openFollowListModal(targetUserId, type) {
               <span class="search-user-username">@${u.username}</span>
             </div>
           </div>
-          <button type="button" class="search-view-profile-btn" data-userid="${u.id}">プロフィール</button>
+          <div class="search-user-actions" style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="search-view-profile-btn" data-userid="${u.id}">プロフィール</button>
+            ${followBtnHtml}
+          </div>
         </div>
       `;
     }).join('');
@@ -2751,6 +3037,46 @@ async function openFollowListModal(targetUserId, type) {
         closeModal('modal-follow-list');
         closeModal('modal-user-profile');
         openUserProfileModal(uid);
+      });
+    });
+
+    // 一撃フォロー/アンフォローボタン
+    container.querySelectorAll('.follow-list-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation(); // 親カードのタップイベント（プロフィール表示）を防ぐ
+        if (!currentUser) {
+          alert('ログインが必要です');
+          return;
+        }
+        const targetId = btn.getAttribute('data-userid');
+        btn.disabled = true;
+
+        const isFollowingAlready = btn.classList.contains('following');
+        try {
+          if (isFollowingAlready) {
+            // アンフォロー
+            await sheetDB.unfollow(currentUser.id, targetId);
+            btn.textContent = 'フォローする';
+            btn.classList.remove('following');
+            btn.style.background = 'var(--primary-gradient)';
+            btn.style.color = '#fff';
+          } else {
+            // フォロー
+            await sheetDB.follow(currentUser.id, targetId);
+            btn.textContent = 'フォロー中';
+            btn.classList.add('following');
+            btn.style.background = 'var(--primary-light)';
+            btn.style.color = 'var(--primary)';
+          }
+          // プロフィール統計やタイムライン表示を更新
+          if (typeof renderMyPage === 'function') renderMyPage();
+          if (typeof renderTimeline === 'function') renderTimeline();
+        } catch (err) {
+          console.error(err);
+          alert('フォロー処理に失敗しました');
+        } finally {
+          btn.disabled = false;
+        }
       });
     });
 
