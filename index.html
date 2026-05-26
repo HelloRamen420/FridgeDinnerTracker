@@ -615,6 +615,21 @@
       
       <div class="modal-body info-sheet-body" style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main); -webkit-overflow-scrolling: touch;">
         
+        <!-- v1.1.1 (HOTFIX / USABILITY) -->
+        <div class="detail-section" style="margin-bottom: 24px; border-bottom: 1px dashed var(--border-color); padding-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-size: 1.1rem; font-weight: 700; color: var(--primary);">🚀 v1.1.1</span>
+            <span style="font-size: 0.8rem; font-weight: 700; color: white; background-color: var(--primary); padding: 2px 8px; border-radius: 20px;">ユーザビリティ ＆ 不具合修正</span>
+          </div>
+          <p style="font-size: 0.75rem; color: var(--text-sub); margin-top: -6px; margin-bottom: 12px;">リリース日: 2026年05月26日</p>
+          
+          <ul style="padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+            <li><strong>「何人前」入力フォームの数値化＆自動表示補正</strong>: 記録・編集時の「何人前」入力欄を数値専用（`type="number"`）にし、手動での「人前」入力の手間を排除（数字だけを入力すれば良い快適なUI）。表示時には「人前」を自動補完。既存の文字列データとの完全な互換性（編集復元時の自動数値抽出）を確保。</li>
+            <li><strong>他ユーザープロフィールのInstagram風3列グリッド表示</strong>: プロフィール内の料理投稿一覧を3列グリッド化。写真の有無にかかわらずアスペクト比 1:1 で美しく整列させ、ホバー時に評価や人数などの情報がふんわりと浮かび上がるオーバーレイ表示を実装。タップで詳細モーダルに完璧に連動。</li>
+            <li><strong>削除確認ダイアログ ＆ ゾンビデータ復活バグの根本解消</strong>: 誤削除を防ぐ「本当に削除していいですか？」という確認プロンプトを搭載。削除時の非同期による競合を排除するため、`async/await` で「タイムライン投稿の削除」および「サーバーDB（GAS）への上書き同期保存」の完了を同期的に待機する堅牢な処理へと変更。これにより、起動・リロード時の自動マージで削除したはずのデータが復活する「ゾンビバグ」を完全に終息。</li>
+          </ul>
+        </div>
+
         <!-- v1.1.0 (SNS RELEASE) -->
         <div class="detail-section" style="margin-bottom: 24px; border-bottom: 1px dashed var(--border-color); padding-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
