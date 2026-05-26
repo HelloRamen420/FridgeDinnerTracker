@@ -645,7 +645,8 @@ body {
   align-items: center;
   gap: 4px;
   color: var(--text-sub);
-  width: 70px;
+  width: 20%;
+  min-width: 0;
   cursor: pointer;
 }
 
@@ -1606,4 +1607,662 @@ body {
   color: var(--text-sub);
   max-width: 250px;
   line-height: 1.4;
+}
+
+/* ════════════════════════════════════════════════════════
+   新セクション: タイムライン・マイページ・認証・フォロー
+   ════════════════════════════════════════════════════════ */
+
+/* ─── タイムライン ─── */
+.tl-login-banner {
+  background: linear-gradient(135deg, #FFF7ED 0%, #FEF3C7 100%);
+  border: 1px solid #FDE68A;
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.tl-login-banner-icon {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+}
+
+.tl-login-banner p {
+  font-size: 0.85rem;
+  color: var(--text-sub);
+  margin-bottom: 12px;
+}
+
+.tl-login-btn {
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.tl-login-btn:active {
+  transform: scale(0.95);
+}
+
+/* タイムライン投稿カード */
+.tl-post-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  animation: fadeIn 0.3s ease;
+}
+
+.tl-post-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 8px;
+}
+
+.tl-post-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 2px solid var(--primary-light);
+  transition: transform 0.15s ease;
+}
+
+.tl-post-avatar:active {
+  transform: scale(0.9);
+}
+
+.tl-post-author {
+  flex: 1;
+  min-width: 0;
+}
+
+.tl-post-nickname {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tl-post-date {
+  font-size: 0.7rem;
+  color: var(--text-sub);
+}
+
+.tl-post-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background-color: #F3F4F6;
+}
+
+.tl-post-body {
+  padding: 12px 16px 16px;
+}
+
+.tl-post-dishname {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.tl-post-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  margin-bottom: 8px;
+}
+
+.tl-post-rating {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.tl-post-ingredients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.tl-post-ingredient-tag {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  color: var(--text-sub);
+  font-weight: 500;
+}
+
+.tl-post-memo-preview {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* ─── マイページ ─── */
+.mypage-auth-area {
+  padding: 20px 0;
+}
+
+.mypage-auth-card {
+  background: linear-gradient(135deg, #FFF7ED 0%, #FEF3C7 100%);
+  border-radius: 20px;
+  padding: 32px 24px;
+  text-align: center;
+  border: 1px solid #FDE68A;
+}
+
+.mypage-auth-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.mypage-auth-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.mypage-auth-card p {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  margin-bottom: 20px;
+}
+
+.mypage-login-btn,
+.mypage-register-btn {
+  display: inline-block;
+  padding: 10px 24px;
+  border-radius: 20px;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin: 0 4px;
+  transition: transform 0.15s ease;
+}
+
+.mypage-login-btn {
+  background: var(--primary-gradient);
+  color: white;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+}
+
+.mypage-register-btn {
+  background: white;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+}
+
+.mypage-login-btn:active,
+.mypage-register-btn:active {
+  transform: scale(0.95);
+}
+
+/* プロフィールヘッダー */
+.mypage-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.mypage-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  border: 3px solid var(--primary);
+  flex-shrink: 0;
+}
+
+.mypage-profile-info {
+  flex: 1;
+}
+
+.mypage-nickname {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.mypage-username {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+}
+
+/* フォロー統計 */
+.mypage-follow-stats {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 16px 0;
+  margin-bottom: 16px;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.follow-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.follow-stat-count {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.follow-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
+/* 自己紹介 */
+.mypage-bio-section {
+  margin-bottom: 16px;
+}
+
+.mypage-bio-input {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+  resize: none;
+  line-height: 1.5;
+  background: var(--bg-color);
+  color: var(--text-main);
+  transition: border-color 0.2s ease;
+}
+
+.mypage-bio-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.mypage-save-bio-btn {
+  margin-top: 8px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.mypage-save-bio-btn:active {
+  opacity: 0.8;
+}
+
+/* アバター絵文字ピッカー */
+.mypage-avatar-picker {
+  margin-bottom: 20px;
+}
+/* ログアウトボタン */
+.mypage-logout-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--red);
+  background: transparent;
+  color: var(--red);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 40px;
+  transition: all 0.15s ease;
+}
+
+.mypage-logout-btn:active {
+  background: var(--red-light);
+}
+
+/* ─── 認証モーダル ─── */
+.auth-submit-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--primary-gradient);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.auth-submit-btn:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+.auth-error-msg {
+  color: var(--red);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.auth-switch-text {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  margin-top: 16px;
+}
+
+.auth-switch-link {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+
+/* ─── フォロートグルボタン ─── */
+.follow-toggle-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: var(--primary-gradient);
+  color: white;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.2);
+  margin-bottom: 16px;
+}
+
+.follow-toggle-btn.following {
+  background: var(--bg-color);
+  color: var(--text-sub);
+  border: 1.5px solid var(--border-color);
+  box-shadow: none;
+}
+
+.follow-toggle-btn:active {
+  transform: scale(0.97);
+}
+
+/* ─── 他ユーザープロフィール ─── */
+.user-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.user-profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.8rem;
+  border: 2.5px solid var(--primary);
+  flex-shrink: 0;
+}
+
+.user-profile-info {
+  flex: 1;
+}
+
+.user-profile-nickname {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.user-profile-username {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+}
+
+.user-profile-bio {
+  font-size: 0.85rem;
+  color: var(--text-sub);
+  line-height: 1.5;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  background: var(--bg-color);
+  border-radius: 10px;
+  min-height: 20px;
+}
+
+.user-profile-posts {
+  margin-top: 12px;
+}
+
+.user-profile-post-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.user-profile-post-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--bg-color);
+  flex-shrink: 0;
+}
+
+.user-profile-post-info {
+  flex: 1;
+}
+
+.user-profile-post-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.user-profile-post-date {
+  font-size: 0.7rem;
+  color: var(--text-sub);
+}
+
+/* ─── メモ（買い物メモ専用）画面 ─── */
+.memo-shopping-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+/* ─── パスワード表示トグル ─── */
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-wrapper .form-input {
+  padding-right: 44px; /* ボタンと入力テキストが重ならないように余白を確保 */
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-sub);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10;
+  outline: none;
+  padding: 0;
+}
+
+.password-toggle-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--primary);
+}
+
+.password-toggle-btn:active {
+  transform: translateY(-50%) scale(0.88);
+}
+
+.password-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  pointer-events: none; /* SVG内部の要素をクリックイベントのターゲットから外す */
+}
+
+/* SVG内パス表示制御 */
+.password-toggle-btn .hidden {
+  display: none !important;
+}
+
+/* ─── ユーザー検索カード ─── */
+.search-user-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.01);
+}
+
+.search-user-card:hover {
+  border-color: rgba(249, 115, 22, 0.3);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.05);
+}
+
+.search-user-card:active {
+  transform: scale(0.98);
+}
+
+.search-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-user-avatar {
+  width: 44px;
+  height: 44px;
+  background: var(--primary-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.search-user-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-user-nickname {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.search-user-username {
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  margin-top: 1px;
+}
+
+.search-view-profile-btn {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: none;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.search-user-card:hover .search-view-profile-btn {
+  background: var(--primary);
+  color: white;
+}
+
+/* クリック可能なフォロー・フォロワー統計 */
+.mypage-follow-stats .follow-stat,
+.user-profile-stats .follow-stat {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  user-select: none;
+}
+
+.mypage-follow-stats .follow-stat:hover,
+.user-profile-stats .follow-stat:hover {
+  opacity: 0.8;
+}
+
+.mypage-follow-stats .follow-stat:active,
+.user-profile-stats .follow-stat:active {
+  opacity: 0.6;
 }

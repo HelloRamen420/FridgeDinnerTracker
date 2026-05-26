@@ -28,17 +28,20 @@
     <!-- 1. メイン表示エリア（タブ切り替え） -->
     <main id="main-content">
       
-      <!-- ─── A. ダッシュボード画面 ─── -->
-      <section id="tab-dashboard" class="tab-pane active">
+      <!-- ─── A. タイムライン画面 ─── -->
+      <section id="tab-timeline" class="tab-pane active">
         <header class="view-header">
           <div class="header-main">
             <div>
-              <span class="view-subtitle">Today's Overview</span>
-              <h1 class="view-title">ダッシュボード</h1>
+              <span class="view-subtitle">Social Feed</span>
+              <h1 class="view-title">タイムライン</h1>
             </div>
             <div style="display: flex; gap: 8px;">
-              <button class="icon-btn-info" id="btn-open-changelog" title="更新履歴">
-                <span class="info-icon">v</span>
+              <button class="icon-btn-info" id="btn-open-search" title="ユーザー検索">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
               </button>
               <button class="icon-btn-info" id="btn-open-info" title="アプリについて">
                 <span class="info-icon">i</span>
@@ -46,68 +49,26 @@
             </div>
           </div>
         </header>
-        
-        <div class="view-body">
-          <!-- 統計カード -->
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-icon icon-fridge">🧊</div>
-              <div class="stat-label">冷蔵庫の食材</div>
-              <div class="stat-value" id="stats-fridge-count">0 品</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon icon-dinner">📋</div>
-              <div class="stat-label">今週の晩ごはん</div>
-              <div class="stat-value" id="stats-dinner-count">0 回</div>
-            </div>
-          </div>
-          
-          <!-- 買い物メモセクション -->
-          <div class="dashboard-section">
-            <div class="section-header">
-              <h2>買い物メモ</h2>
-            </div>
-            <div class="shopping-card">
-              <div class="shopping-input-row">
-                <input type="text" id="shopping-new-item" placeholder="買うものを入力 (例: 卵, キャベツ)">
-                <button type="button" id="btn-add-shopping">追加</button>
-              </div>
-              <ul class="shopping-list" id="dashboard-shopping-list">
-                <!-- JSで動的に買い物リスト項目が追加されます -->
-              </ul>
 
-            </div>
+        <div class="view-body">
+          <!-- 未ログインバナー -->
+          <div class="tl-login-banner" id="tl-login-banner">
+            <div class="tl-login-banner-icon">🧑‍🍳</div>
+            <p>ログインすると、みんなの晩ごはんが見られます</p>
+            <button type="button" class="tl-login-btn" id="tl-btn-goto-login">ログイン / 新規登録</button>
           </div>
-          
-          <!-- 消費期限アラート -->
-          <div class="dashboard-section">
-            <div class="section-header">
-              <h2>消費期限アラート</h2>
-              <span class="alert-badge" id="dashboard-alert-badge">0</span>
-            </div>
-            <div class="alert-list" id="dashboard-alert-list">
-              <!-- JSで動的に構築される警告食材カードが入る -->
-            </div>
+
+          <!-- タイムラインフィード -->
+          <div class="tl-feed" id="tl-feed-container">
+            <!-- JSで動的に投稿カードが生成 -->
           </div>
-                    <!-- AI食事の構成要素分析 -->
-            <div class="dashboard-section">
-              <div class="section-header">
-                <h2>AI食事の構成要素分析</h2>
-              </div>
-              <div class="profile-card" id="ai-preference-profile-card">
-                <!-- JSで動的生成されるカード -->
-              </div>
-            </div>
-            
-            <!-- スマートおすすめ献立提案 -->
-            <div class="dashboard-section">
-              <div class="section-header">
-                <h2>今日の献立アイデア</h2>
-              </div>
-              <div class="recommendation-card" id="recipe-recommendation-card">
-                <!-- JSで動的生成されるカード -->
-              </div>
-            </div>
+
+          <!-- 空状態 -->
+          <div class="empty-state hidden" id="tl-empty-state">
+            <div class="empty-icon">🍽️</div>
+            <h3>まだ投稿がありません</h3>
+            <p>晩ごはんを記録して、タイムラインに共有しましょう！</p>
+          </div>
         </div>
       </section>
       
@@ -168,22 +129,189 @@
           </div>
         </div>
       </section>
-      
+
+      <!-- ─── D. メモ（買い物メモ）画面 ─── -->
+      <section id="tab-memo" class="tab-pane">
+        <header class="view-header">
+          <div class="header-main">
+            <div>
+              <span class="view-subtitle">Shopping Memo</span>
+              <h1 class="view-title">買い物メモ</h1>
+            </div>
+          </div>
+        </header>
+
+        <div class="view-body">
+          <div class="memo-shopping-card">
+            <div class="shopping-input-row">
+              <input type="text" id="shopping-new-item" placeholder="買うものを入力 (例: 卵, キャベツ)">
+              <button type="button" id="btn-add-shopping">追加</button>
+            </div>
+            <ul class="shopping-list" id="memo-shopping-list">
+              <!-- JSで動的に買い物リスト項目が追加されます -->
+            </ul>
+          </div>
+
+          <!-- 消費期限アラート -->
+          <div class="dashboard-section" style="margin-top: 16px;">
+            <div class="section-header">
+              <h2>消費期限アラート</h2>
+              <span class="alert-badge" id="dashboard-alert-badge">0</span>
+            </div>
+            <div class="alert-list" id="dashboard-alert-list">
+              <!-- JSで動的に構築される警告食材カードが入る -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── E. マイページ画面 ─── -->
+      <section id="tab-mypage" class="tab-pane">
+        <header class="view-header">
+          <div class="header-main">
+            <div>
+              <span class="view-subtitle">My Page</span>
+              <h1 class="view-title">マイページ</h1>
+            </div>
+          </div>
+        </header>
+
+        <div class="view-body">
+
+          <!-- 未ログイン表示 -->
+          <div class="mypage-auth-area" id="mypage-auth-area">
+            <div class="mypage-auth-card">
+              <div class="mypage-auth-icon">🔐</div>
+              <h3>ログインしてあなたの料理記録を共有しよう</h3>
+              <p>アカウントを作って、みんなの料理を見たりフォローしたりできます</p>
+              <button type="button" class="mypage-login-btn" id="btn-open-login-modal">ログイン</button>
+              <button type="button" class="mypage-register-btn" id="btn-open-register-modal">新規登録</button>
+            </div>
+          </div>
+
+          <!-- ログイン済みプロフィール -->
+          <div class="mypage-profile-area hidden" id="mypage-profile-area">
+            <!-- アバター & 基本情報 -->
+            <div class="mypage-profile-header">
+              <div class="mypage-avatar" id="mypage-avatar">🧑‍🍳</div>
+              <div class="mypage-profile-info">
+                <h2 class="mypage-nickname" id="mypage-nickname">ニックネーム</h2>
+                <span class="mypage-username" id="mypage-username">@username</span>
+              </div>
+            </div>
+
+            <!-- フォロー数 -->
+            <div class="mypage-follow-stats">
+              <div class="follow-stat" id="btn-mypage-following">
+                <span class="follow-stat-count" id="mypage-following-count">0</span>
+                <span class="follow-stat-label">フォロー</span>
+              </div>
+              <div class="follow-stat" id="btn-mypage-followers">
+                <span class="follow-stat-count" id="mypage-followers-count">0</span>
+                <span class="follow-stat-label">フォロワー</span>
+              </div>
+              <div class="follow-stat">
+                <span class="follow-stat-count" id="mypage-posts-count">0</span>
+                <span class="follow-stat-label">投稿</span>
+              </div>
+            </div>
+
+            <!-- 自己紹介・プロフィール変更 -->
+            <div class="mypage-bio-section" style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
+              <div>
+                <label class="form-label">ユーザーネーム（ログインID）</label>
+                <input type="text" id="mypage-username-input" class="form-input" placeholder="例: cooking_master" style="margin-top: 4px;">
+              </div>
+              
+              <div>
+                <label class="form-label">ニックネーム（表示名）</label>
+                <input type="text" id="mypage-nickname-input" class="form-input" placeholder="例: お料理マスター" style="margin-top: 4px;">
+              </div>
+
+              <div>
+                <label class="form-label">自己紹介</label>
+                <textarea id="mypage-bio" class="mypage-bio-input" placeholder="自己紹介を入力..." rows="2" style="margin-top: 4px;"></textarea>
+              </div>
+
+              <!-- アバター変更 -->
+              <div class="mypage-avatar-picker">
+                <label class="form-label">アバターの一文字（絵文字・漢字・ひらがな等）</label>
+                <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
+                  <input type="text" id="mypage-avatar-input" class="form-input" placeholder="例: 🍳" style="font-size: 1.25rem; text-align: center; width: 64px; height: 44px; padding: 0;">
+                  <span style="font-size: 0.75rem; color: var(--text-sub);">※お好きな絵文字、ひらがな、漢字などを1文字だけ設定できます。</span>
+                </div>
+                <div id="mypage-avatar-warning" style="display: none; font-size: 0.75rem; color: #ff3b30; margin-top: 6px; font-weight: 500; align-items: center; gap: 4px;">
+                  ⚠️ 1文字のみ入力可能です（2文字以上は入力できません）。
+                </div>
+              </div>
+
+              <button type="button" class="mypage-save-bio-btn" id="btn-save-profile" style="margin-top: 8px; width: 100%;">プロフィールを保存</button>
+            </div>
+
+            <!-- 統計カード -->
+            <div class="stats-grid" style="margin-top: 20px;">
+              <div class="stat-card">
+                <div class="stat-icon icon-fridge">🧊</div>
+                <div class="stat-label">冷蔵庫の食材</div>
+                <div class="stat-value" id="stats-fridge-count">0 品</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon icon-dinner">📋</div>
+                <div class="stat-label">今週の晩ごはん</div>
+                <div class="stat-value" id="stats-dinner-count">0 回</div>
+              </div>
+            </div>
+
+            <!-- AI食事の構成要素分析 -->
+            <div class="dashboard-section">
+              <div class="section-header">
+                <h2>AI食事の構成要素分析</h2>
+              </div>
+              <div class="profile-card" id="ai-preference-profile-card">
+                <!-- JSで動的生成されるカード -->
+              </div>
+            </div>
+
+            <!-- スマートおすすめ献立提案 -->
+            <div class="dashboard-section">
+              <div class="section-header">
+                <h2>今日の献立アイデア</h2>
+              </div>
+              <div class="recommendation-card" id="recipe-recommendation-card">
+                <!-- JSで動的生成されるカード -->
+              </div>
+            </div>
+
+            <!-- ログアウト -->
+            <button type="button" class="mypage-logout-btn" id="btn-logout">ログアウト</button>
+          </div>
+
+        </div>
+      </section>
+
     </main>
     
-    <!-- 2. ボトムタブナビゲーション -->
+    <!-- 2. ボトムタブナビゲーション (5タブ) -->
     <nav id="bottom-navbar">
-      <button class="nav-item active" data-tab="tab-dashboard">
-        <span class="nav-icon">📈</span>
-        <span class="nav-label">ダッシュボード</span>
+      <button class="nav-item active" data-tab="tab-timeline">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">タイムライン</span>
       </button>
       <button class="nav-item" data-tab="tab-fridge">
-        <span class="nav-icon">📦</span>
+        <span class="nav-icon">🧊</span>
         <span class="nav-label">冷蔵庫</span>
       </button>
       <button class="nav-item" data-tab="tab-logs">
         <span class="nav-icon">🍳</span>
         <span class="nav-label">晩ごはん</span>
+      </button>
+      <button class="nav-item" data-tab="tab-memo">
+        <span class="nav-icon">📝</span>
+        <span class="nav-label">メモ</span>
+      </button>
+      <button class="nav-item" data-tab="tab-mypage">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">マイページ</span>
       </button>
     </nav>
     
@@ -443,6 +571,13 @@
             </ul>
           </div>
         </div>
+
+        <!-- アップデート・更新履歴へのリンク -->
+        <div style="margin-top: 24px; text-align: center; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <button type="button" class="mypage-save-bio-btn" id="btn-open-changelog" style="width: 100%; max-width: 240px; margin: 0 auto; background: var(--bg-color); border: 1.5px solid var(--text-sub); color: var(--text-sub); font-size: 0.8rem; font-weight: 700; padding: 10px; border-radius: 20px;">
+            📋 アップデート・更新履歴 (v)
+          </button>
+        </div>
         
       </div>
     </div>
@@ -496,8 +631,197 @@
     </div>
   </div>
 
+  <!-- Modal 10: ユーザー検索モーダル -->
+  <div class="modal-overlay" id="modal-user-search">
+    <div class="modal-sheet">
+      <header class="modal-header">
+        <div></div>
+        <h3 class="modal-title">ユーザー検索</h3>
+        <button class="modal-btn-close" id="btn-close-search">閉じる</button>
+      </header>
+      
+      <div class="modal-body" style="padding-top: 8px; -webkit-overflow-scrolling: touch;">
+        <div class="search-input-wrapper" style="position: relative; margin-bottom: 16px;">
+          <input type="text" id="user-search-input" class="form-input" placeholder="ユーザー名やニックネームで検索..." style="padding-left: 36px; padding-right: 36px;">
+          <!-- SVG Search Icon (Magnifying Glass) -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-sub)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; pointer-events: none;">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <!-- Clear Button (✕) -->
+          <button type="button" id="btn-clear-search" class="hidden" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; font-size: 1rem; color: var(--text-sub); cursor: pointer; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">✕</button>
+        </div>
+        
+        <!-- 検索結果表示リスト -->
+        <div id="user-search-results" class="user-search-results-list" style="display: flex; flex-direction: column; gap: 12px; max-height: 60vh; overflow-y: auto; padding-bottom: 24px;">
+          <p class="search-placeholder-text" style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 32px 0;">ユーザーを検索中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 11: フォロー/フォロワー一覧モーダル -->
+  <div class="modal-overlay" id="modal-follow-list">
+    <div class="modal-sheet">
+      <header class="modal-header">
+        <div></div>
+        <h3 class="modal-title" id="follow-list-title">フォロー一覧</h3>
+        <button class="modal-btn-close" id="btn-close-follow-list">閉じる</button>
+      </header>
+      
+      <div class="modal-body" style="padding-top: 8px; -webkit-overflow-scrolling: touch;">
+        <!-- リスト表示コンテナ -->
+        <div id="follow-list-container" style="display: flex; flex-direction: column; gap: 12px; max-height: 60vh; overflow-y: auto; padding-bottom: 24px;">
+          <!-- 動的にレンダリングされるフォロー・フォロワー一覧 -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 6: ログインモーダル -->
+  <div class="modal-overlay" id="modal-login">
+    <div class="modal-sheet">
+      <header class="modal-header">
+        <button class="modal-btn-cancel" id="btn-cancel-login">キャンセル</button>
+        <h3 class="modal-title">ログイン</h3>
+        <div></div>
+      </header>
+      
+      <div class="modal-body">
+        <form id="form-login" autocomplete="off">
+          <div class="form-section">
+            <label class="form-label">ユーザー名</label>
+            <input type="text" id="login-username" class="form-input" placeholder="ユーザー名" required autocomplete="username">
+            
+            <label class="form-label">パスワード</label>
+            <div class="password-wrapper">
+              <input type="password" id="login-password" class="form-input" placeholder="パスワード" required autocomplete="current-password">
+              <button type="button" class="password-toggle-btn" tabindex="-1" aria-label="パスワードを表示">
+                <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path class="eye-open hidden" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle class="eye-open hidden" cx="12" cy="12" r="3"></circle>
+                  <path class="eye-closed" d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line class="eye-closed" x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <div class="form-section" style="padding-top: 8px;">
+            <button type="submit" class="auth-submit-btn" id="btn-do-login">ログイン</button>
+            <p class="auth-error-msg hidden" id="login-error-msg"></p>
+          </div>
+          
+          <div class="auth-switch-text">
+            アカウントがない？ <button type="button" class="auth-switch-link" id="btn-switch-to-register">新規登録はこちら</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 7: 新規登録モーダル -->
+  <div class="modal-overlay" id="modal-register">
+    <div class="modal-sheet">
+      <header class="modal-header">
+        <button class="modal-btn-cancel" id="btn-cancel-register">キャンセル</button>
+        <h3 class="modal-title">新規登録</h3>
+        <div></div>
+      </header>
+      
+      <div class="modal-body">
+        <form id="form-register" autocomplete="off">
+          <div class="form-section">
+            <label class="form-label">ユーザー名（ログインID）</label>
+            <input type="text" id="register-username" class="form-input" placeholder="例: cooking_master" required autocomplete="username">
+            
+            <label class="form-label">ニックネーム（表示名）</label>
+            <input type="text" id="register-nickname" class="form-input" placeholder="例: お料理マスター" required>
+            
+            <label class="form-label">パスワード</label>
+            <div class="password-wrapper">
+              <input type="password" id="register-password" class="form-input" placeholder="パスワード" required autocomplete="new-password">
+              <button type="button" class="password-toggle-btn" tabindex="-1" aria-label="パスワードを表示">
+                <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path class="eye-open hidden" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle class="eye-open hidden" cx="12" cy="12" r="3"></circle>
+                  <path class="eye-closed" d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line class="eye-closed" x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <label class="form-label">パスワード（確認）</label>
+            <div class="password-wrapper">
+              <input type="password" id="register-password-confirm" class="form-input" placeholder="もう一度入力" required autocomplete="new-password">
+              <button type="button" class="password-toggle-btn" tabindex="-1" aria-label="パスワードを表示">
+                <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path class="eye-open hidden" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle class="eye-open hidden" cx="12" cy="12" r="3"></circle>
+                  <path class="eye-closed" d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line class="eye-closed" x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <div class="form-section" style="padding-top: 8px;">
+            <button type="submit" class="auth-submit-btn" id="btn-do-register">登録する</button>
+            <p class="auth-error-msg hidden" id="register-error-msg"></p>
+          </div>
+          
+          <div class="auth-switch-text">
+            すでにアカウントがある？ <button type="button" class="auth-switch-link" id="btn-switch-to-login">ログインはこちら</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 8: 他ユーザープロフィールモーダル -->
+  <div class="modal-overlay" id="modal-user-profile">
+    <div class="modal-sheet">
+      <header class="modal-header">
+        <div></div>
+        <h3 class="modal-title" id="user-profile-title">プロフィール</h3>
+        <button class="modal-btn-close" id="btn-close-user-profile">閉じる</button>
+      </header>
+      
+      <div class="modal-body">
+        <div class="user-profile-header">
+          <div class="user-profile-avatar" id="user-profile-avatar">🧑‍🍳</div>
+          <div class="user-profile-info">
+            <h2 class="user-profile-nickname" id="user-profile-nickname">ニックネーム</h2>
+            <span class="user-profile-username" id="user-profile-username">@username</span>
+          </div>
+        </div>
+        
+        <div class="user-profile-bio" id="user-profile-bio"></div>
+        
+        <div class="mypage-follow-stats" style="margin-bottom: 16px;">
+          <div class="follow-stat" id="btn-user-profile-following">
+            <span class="follow-stat-count" id="user-profile-following">0</span>
+            <span class="follow-stat-label">フォロー</span>
+          </div>
+          <div class="follow-stat" id="btn-user-profile-followers">
+            <span class="follow-stat-count" id="user-profile-followers">0</span>
+            <span class="follow-stat-label">フォロワー</span>
+          </div>
+        </div>
+        
+        <button type="button" class="follow-toggle-btn" id="btn-follow-toggle">フォローする</button>
+        
+        <div class="user-profile-posts" id="user-profile-posts">
+          <!-- JSで動的にその人の投稿リスト -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- AI食事要素分析エンジン -->
   <script src="ai.js"></script>
+  <!-- DB通信モジュール (sheetDB) -->
+  <script src="db.js"></script>
   <!-- JavaScript アプリ本体 -->
   <script src="app.js"></script>
 </body>

@@ -1,10 +1,11 @@
-const CACHE_NAME = 'fridge-dinner-tracker-v3';
+const CACHE_NAME = 'fridge-dinner-tracker-v4';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './ai.js',
+  './db.js',
   './icon-512.png',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap'
@@ -33,6 +34,12 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  // Google Apps Script (GAS) APIリクエストはキャッシュせず常にネットワークへ
+  if (e.request.url.includes('script.google.com') || e.request.url.includes('script.googleusercontent.com')) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
+
   // 外部フォントやGoogle Fontsなどは「キャッシュ優先」
   if (e.request.url.startsWith('http') && !e.request.url.includes(location.hostname)) {
     e.respondWith(

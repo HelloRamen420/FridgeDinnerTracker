@@ -51,6 +51,24 @@ const INGREDIENT_EMOJI_MAP = {
 };
 
 // ─── 1. グローバルアプリケーション状態 ───
+// ユーザー状態に応じたLocalStorageのキーを取得するヘルパー
+function getStorageKeys() {
+  const user = window.sheetDB ? sheetDB.getCurrentUser() : null;
+  if (user && user.id) {
+    return {
+      ingredients: `ingredients_${user.id}`,
+      dinnerLogs: `dinnerLogs_${user.id}`,
+      shoppingList: `shoppingList_${user.id}`
+    };
+  } else {
+    return {
+      ingredients: 'ingredients_guest',
+      dinnerLogs: 'dinnerLogs_guest',
+      shoppingList: 'shoppingList_guest'
+    };
+  }
+}
+
 const state = {
   ingredients: [],
   dinnerLogs: [],
@@ -58,9 +76,13 @@ const state = {
   
   // データ保存用ヘルパー
   save() {
-    localStorage.setItem('ingredients', JSON.stringify(this.ingredients));
-    localStorage.setItem('dinnerLogs', JSON.stringify(this.dinnerLogs));
-    localStorage.setItem('shoppingList', JSON.stringify(this.shoppingList));
+    const keys = getStorageKeys();
+    localStorage.setItem(keys.ingredients, JSON.stringify(this.ingredients));
+    localStorage.setItem(keys.dinnerLogs, JSON.stringify(this.dinnerLogs));
+    localStorage.setItem(keys.shoppingList, JSON.stringify(this.shoppingList));
+    if (typeof triggerCloudSync === 'function') {
+      triggerCloudSync();
+    }
   },
   
   load() {
@@ -72,13 +94,32 @@ const state = {
       localStorage.setItem('purgedSampleData', 'true');
     }
 
-    const rawIng = localStorage.getItem('ingredients');
-    const rawLogs = localStorage.getItem('dinnerLogs');
-    const rawShop = localStorage.getItem('shoppingList');
+    // 後方互換性：古い「_guestなし」のキーが存在し、且つ「_guestあり」のキーが未存在の場合、自動で移行する
+    const legacyIng = localStorage.getItem('ingredients');
+    const legacyLogs = localStorage.getItem('dinnerLogs');
+    const legacyShop = localStorage.getItem('shoppingList');
     
-    if (rawIng) this.ingredients = JSON.parse(rawIng);
-    if (rawLogs) this.dinnerLogs = JSON.parse(rawLogs);
-    if (rawShop) this.shoppingList = JSON.parse(rawShop);
+    if (legacyIng && !localStorage.getItem('ingredients_guest')) {
+      localStorage.setItem('ingredients_guest', legacyIng);
+      localStorage.removeItem('ingredients');
+    }
+    if (legacyLogs && !localStorage.getItem('dinnerLogs_guest')) {
+      localStorage.setItem('dinnerLogs_guest', legacyLogs);
+      localStorage.removeItem('dinnerLogs');
+    }
+    if (legacyShop && !localStorage.getItem('shoppingList_guest')) {
+      localStorage.setItem('shoppingList_guest', legacyShop);
+      localStorage.removeItem('shoppingList');
+    }
+
+    const keys = getStorageKeys();
+    const rawIng = localStorage.getItem(keys.ingredients);
+    const rawLogs = localStorage.getItem(keys.dinnerLogs);
+    const rawShop = localStorage.getItem(keys.shoppingList);
+    
+    this.ingredients = rawIng ? JSON.parse(rawIng) : [];
+    this.dinnerLogs = rawLogs ? JSON.parse(rawLogs) : [];
+    this.shoppingList = rawShop ? JSON.parse(rawShop) : [];
   }
 };
 
@@ -252,8 +293,8 @@ function renderMarkdown(text) {
 
 // ─── 4. アプリケーション描画エンジン ───
 
-// A. ダッシュボードの描画
-function renderDashboard() {
+// A. ダッシュボード（マイページ＆メモ用データ）の描画
+function renderDashboardData() {
   const alertList = document.getElementById('dashboard-alert-list');
   const alertBadge = document.getElementById('dashboard-alert-badge');
   const statsFridge = document.getElementById('stats-fridge-count');
@@ -756,7 +797,8 @@ function renderLogs() {
       
     // 食事要素タグと食材タグの表示
     const compHtml = (log.components || []).map(comp => `<span class="log-tag" style="background-color:var(--secondary-light); color:var(--secondary);">${comp}</span>`).join('');
-    const ingHtml = log.ingredientsUsed.map(item => {
+    const ingredientsArray = log.ingredientsUsed || log.usedIngredients || [];
+    const ingHtml = ingredientsArray.map(item => {
       let label = "";
       if (typeof item === 'object' && item !== null) {
         const qtyStr = item.quantity !== undefined && item.quantity !== null ? ` ${item.quantity}${item.unit || ''}` : '';
@@ -819,15 +861,150 @@ function renderLogs() {
 }
 
 // 統括レンダラー
+// 新規: タイムラインの描画
+async function renderTimeline() {
+  const container = document.getElementById('tl-feed-container');
+  const emptyState = document.getElementById('tl-empty-state');
+  const loginBanner = document.getElementById('tl-login-banner');
+  
+  if (!window.sheetDB) return;
+  
+  const user = sheetDB.getCurrentUser();
+  if (!user) {
+    loginBanner.style.display = 'block';
+    container.innerHTML = '';
+    emptyState.classList.add('hidden');
+    return;
+  }
+  
+  loginBanner.style.display = 'none';
+  
+  try {
+    const posts = await sheetDB.getTimeline(); // 本来は getFollowingFeed(user.id) など
+    if (!posts || posts.length === 0) {
+      emptyState.classList.remove('hidden');
+      container.innerHTML = '';
+      return;
+    }
+    
+    emptyState.classList.add('hidden');
+    container.innerHTML = posts.map(post => {
+      const isMyPost = post.userId === user.id;
+      const tags = (post.ingredients || []).map(ing => {
+        let label = typeof ing === 'object' ? `${ing.name} ${ing.quantity || ''}${ing.unit || ''}` : ing;
+        return `<span class="tl-post-ingredient-tag">${label}</span>`;
+      }).join('');
+      
+      const ratingWidth = (parseFloat(post.rating || 5) / 5) * 100;
+      const photoHtml = post.photo ? `<img src="${post.photo}" class="tl-post-photo" alt="Photo">` : '';
+      
+      return `
+        <div class="tl-post-card">
+          <div class="tl-post-header">
+            <div class="tl-post-avatar" data-userid="${post.userId}">${post.avatarEmoji || '🧑‍🍳'}</div>
+            <div class="tl-post-author">
+              <div class="tl-post-nickname">${post.nickname || '名無し'}</div>
+              <div class="tl-post-date">${formatJapaneseDate(post.date)}</div>
+            </div>
+            ${isMyPost ? `<button class="icon-btn-info" style="width:30px;height:30px;font-size:0.8rem;" onclick="deletePost('${post.id}')">🗑</button>` : ''}
+          </div>
+          ${photoHtml}
+          <div class="tl-post-body">
+            <div class="tl-post-dishname">${post.dishName}</div>
+            <div class="tl-post-meta">
+              <span>👤 ${post.servings || '2人前'}</span>
+              <span class="tl-post-rating">★ ${parseFloat(post.rating || 5).toFixed(1)}</span>
+            </div>
+            <div class="tl-post-ingredients">${tags}</div>
+            ${post.memo ? `<div class="tl-post-memo-preview">${post.memo}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // プロフィールモーダルを開くイベント
+    container.querySelectorAll('.tl-post-avatar').forEach(avatar => {
+      avatar.addEventListener('click', () => {
+        const userId = avatar.getAttribute('data-userid');
+        openUserProfileModal(userId);
+      });
+    });
+    
+  } catch(e) {
+    console.error("Timeline error:", e);
+    container.innerHTML = `<p style="text-align:center;color:red;padding:20px;">読み込みエラーが発生しました</p>`;
+  }
+}
+
+window.deletePost = async function(postId) {
+  if (confirm('この投稿を削除しますか？')) {
+    await sheetDB.deletePost(postId);
+    renderTimeline();
+  }
+};
+
+// 新規: マイページの描画
+async function renderMyPage() {
+  const authArea = document.getElementById('mypage-auth-area');
+  const profileArea = document.getElementById('mypage-profile-area');
+  
+  if (!window.sheetDB) return;
+  const user = sheetDB.getCurrentUser();
+  
+  if (!user) {
+    authArea.classList.remove('hidden');
+    profileArea.classList.add('hidden');
+    return;
+  }
+  
+  authArea.classList.add('hidden');
+  profileArea.classList.remove('hidden');
+  
+  // プロフィール情報反映
+  document.getElementById('mypage-nickname').textContent = user.nickname || user.username;
+  document.getElementById('mypage-username').textContent = '@' + user.username;
+  document.getElementById('mypage-avatar').textContent = user.avatarEmoji || '🧑‍🍳';
+  
+  // 入力欄への反映
+  const usernameInput = document.getElementById('mypage-username-input');
+  const nicknameInput = document.getElementById('mypage-nickname-input');
+  const bioInput = document.getElementById('mypage-bio');
+  
+  if (usernameInput) usernameInput.value = user.username || '';
+  if (nicknameInput) nicknameInput.value = user.nickname || '';
+  if (bioInput) bioInput.value = user.bio || '';
+  
+  // アバター入力欄への反映と初期化
+  const avatarInput = document.getElementById('mypage-avatar-input');
+  if (avatarInput) {
+    avatarInput.value = user.avatarEmoji || '🧑‍🍳';
+    avatarInput.style.borderColor = '';
+    const warningEl = document.getElementById('mypage-avatar-warning');
+    if (warningEl) warningEl.style.display = 'none';
+  }
+  
+  // 統計取得 (非同期)
+  try {
+    const prof = await sheetDB.getUserProfile(user.id);
+    document.getElementById('mypage-following-count').textContent = prof.followingCount || 0;
+    document.getElementById('mypage-followers-count').textContent = prof.followersCount || 0;
+    document.getElementById('mypage-posts-count').textContent = prof.posts ? prof.posts.length : 0;
+  } catch(e) {
+    console.error("Profile load error:", e);
+  }
+}
+
 function renderAll() {
-  renderDashboard();
+  renderDashboardData();
   renderFridge();
   renderLogs();
+  renderTimeline();
+  renderMyPage();
 }
 
 // 買い物メモ（Shopping List）のレンダリング
 function renderShoppingList() {
-  const container = document.getElementById('dashboard-shopping-list');
+  const container = document.getElementById('memo-shopping-list');
   
   if (!container) return;
   
@@ -1179,7 +1356,7 @@ function openLogModal(defaultDishName = '', existingLog = null) {
     switchMemoMode('edit');
     
     // チェックリストの復元
-    buildFridgeChecklist(existingLog.ingredientsUsed || []);
+    buildFridgeChecklist(existingLog.ingredientsUsed || existingLog.usedIngredients || []);
   } else {
     editingLogId = null;
     if (titleEl) titleEl.textContent = "晩ごはんを記録";
@@ -1552,9 +1729,10 @@ function openLogDetailModal(log) {
   }
   
   // 食材タグ
-  if (log.ingredientsUsed.length > 0) {
+  const ingredientsArray = log.ingredientsUsed || log.usedIngredients || [];
+  if (ingredientsArray.length > 0) {
     detailTags.parentElement.classList.remove('hidden');
-    detailTags.innerHTML = log.ingredientsUsed.map(item => {
+    detailTags.innerHTML = ingredientsArray.map(item => {
       let label = "";
       if (typeof item === 'object' && item !== null) {
         const qtyStr = item.quantity !== undefined && item.quantity !== null ? ` ${item.quantity}${item.unit || ''}` : '';
@@ -1616,6 +1794,130 @@ if (btnOpenChangelog) {
   });
 }
 
+// ─── ユーザー検索モーダルのイベントバインド ───
+const btnOpenSearch = document.getElementById('btn-open-search');
+const btnCloseSearch = document.getElementById('btn-close-search');
+const userSearchInput = document.getElementById('user-search-input');
+const btnClearSearch = document.getElementById('btn-clear-search');
+const userSearchResults = document.getElementById('user-search-results');
+
+let searchableUsers = [];
+
+if (btnOpenSearch) {
+  btnOpenSearch.addEventListener('click', async () => {
+    openModal('modal-user-search');
+    
+    // 初期クリア
+    if (userSearchInput) userSearchInput.value = '';
+    if (btnClearSearch) btnClearSearch.classList.add('hidden');
+    if (userSearchResults) {
+      userSearchResults.innerHTML = '<p style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 32px 0;">読み込み中...</p>';
+    }
+
+    try {
+      // 全ユーザーをロード
+      const allUsers = await sheetDB.getAllUsers();
+      const currentUser = sheetDB.getCurrentUser();
+      
+      // 自分以外のユーザーを検索対象にする
+      searchableUsers = allUsers.filter(u => !currentUser || u.id !== currentUser.id);
+      
+      // 初期状態：全員を表示
+      renderSearchResults(searchableUsers);
+    } catch (e) {
+      console.error(e);
+      if (userSearchResults) {
+        userSearchResults.innerHTML = '<p style="text-align: center; color: var(--red); font-size: 0.85rem; padding: 32px 0;">ユーザー一覧の取得に失敗しました</p>';
+      }
+    }
+  });
+}
+
+if (btnCloseSearch) {
+  btnCloseSearch.addEventListener('click', () => {
+    closeModal('modal-user-search');
+  });
+}
+
+// リアルタイム検索（入力時）
+if (userSearchInput) {
+  userSearchInput.addEventListener('input', (e) => {
+    const query = e.target.value.trim().toLowerCase();
+    
+    if (query) {
+      if (btnClearSearch) btnClearSearch.classList.remove('hidden');
+      
+      const filtered = searchableUsers.filter(u => 
+        (u.username || '').toLowerCase().includes(query) ||
+        (u.nickname || '').toLowerCase().includes(query)
+      );
+      renderSearchResults(filtered);
+    } else {
+      if (btnClearSearch) btnClearSearch.classList.add('hidden');
+      renderSearchResults(searchableUsers);
+    }
+  });
+}
+
+// クリアボタン
+if (btnClearSearch) {
+  btnClearSearch.addEventListener('click', () => {
+    if (userSearchInput) userSearchInput.value = '';
+    btnClearSearch.classList.add('hidden');
+    renderSearchResults(searchableUsers);
+  });
+}
+
+// 検索結果を描画する関数
+function renderSearchResults(users) {
+  if (!userSearchResults) return;
+  
+  if (users.length === 0) {
+    userSearchResults.innerHTML = '<p style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 32px 0;">該当するユーザーは見つかりません</p>';
+    return;
+  }
+  
+  userSearchResults.innerHTML = users.map(u => {
+    const emoji = u.avatarEmoji || '🧑‍🍳';
+    const dispName = u.nickname || u.username;
+    return `
+      <div class="search-user-card" data-userid="${u.id}">
+        <div class="search-user-info">
+          <div class="search-user-avatar">${emoji}</div>
+          <div class="search-user-meta">
+            <span class="search-user-nickname">${dispName}</span>
+            <span class="search-user-username">@${u.username}</span>
+          </div>
+        </div>
+        <button type="button" class="search-view-profile-btn" data-userid="${u.id}">プロフィール</button>
+      </div>
+    `;
+  }).join('');
+  
+  // イベントバインド
+  userSearchResults.querySelectorAll('.search-user-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      const targetUserId = card.getAttribute('data-userid');
+      if (targetUserId) {
+        closeModal('modal-user-search');
+        openUserProfileModal(targetUserId);
+      }
+    });
+  });
+  
+  userSearchResults.querySelectorAll('.search-view-profile-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation(); // 親カードのクリックイベントを発火させない
+      const targetUserId = btn.getAttribute('data-userid');
+      if (targetUserId) {
+        closeModal('modal-user-search');
+        openUserProfileModal(targetUserId);
+      }
+    });
+  });
+}
+
+
 // ─── 8. 買い物メモ手動操作イベント ───
 const btnAddShopping = document.getElementById('btn-add-shopping');
 const shoppingNewItemInput = document.getElementById('shopping-new-item');
@@ -1642,6 +1944,621 @@ if (btnAddShopping) {
   });
 }
 
+/**
+ * ログイン・新規登録時にクラウドからデータを取得し、ローカルとマージして同期する
+ */
+async function syncOnLogin(userId) {
+  if (!window.sheetDB || !sheetDB.isLive() || !userId) return;
+
+  try {
+    // 1. クラウド側のバックアップデータを取得
+    const cloud = await sheetDB.getUserBackupData(userId);
+    
+    // 2. ゲスト用データの存在確認
+    const guestIng = localStorage.getItem('ingredients_guest');
+    const guestLogs = localStorage.getItem('dinnerLogs_guest');
+    const guestShop = localStorage.getItem('shoppingList_guest');
+    
+    let hasGuestData = false;
+    try {
+      if (guestIng && JSON.parse(guestIng).length > 0) hasGuestData = true;
+      if (guestLogs && JSON.parse(guestLogs).length > 0) hasGuestData = true;
+      if (guestShop && JSON.parse(guestShop).length > 0) hasGuestData = true;
+    } catch(e) {}
+    
+    // データの引き継ぎ可否を確認
+    let shouldMigrate = false;
+    if (hasGuestData) {
+      shouldMigrate = confirm('未ログイン時に登録した冷蔵庫や夕食履歴のデータが残っています。\nこれを新しくログインするアカウントに引き継ぎ（統合）しますか？\n\n・「OK」を選ぶと、現在のデータをアカウントに統合します。\n・「キャンセル」を選ぶと、この端末のデータは消去され、アカウントにすでに保存されているデータのみが表示されます。');
+    }
+    
+    // 3. スマートマージ処理
+    // ── 食材 (Ingredients) ──
+    let mergedIngredients = [];
+    if (shouldMigrate) {
+      mergedIngredients = [...state.ingredients];
+    }
+    if (cloud.ingredients && cloud.ingredients.length > 0) {
+      cloud.ingredients.forEach(cloudItem => {
+        const localIdx = mergedIngredients.findIndex(li => li.id === cloudItem.id);
+        if (localIdx === -1) {
+          mergedIngredients.push(cloudItem);
+        } else {
+          mergedIngredients[localIdx] = cloudItem;
+        }
+      });
+    }
+    state.ingredients = mergedIngredients;
+
+    // ── 夕食履歴 (dinnerLogs) ──
+    let mergedLogs = [];
+    if (shouldMigrate) {
+      mergedLogs = [...state.dinnerLogs];
+    }
+    if (cloud.logs && cloud.logs.length > 0) {
+      cloud.logs.forEach(cloudItem => {
+        const localIdx = mergedLogs.findIndex(ll => ll.id === cloudItem.id);
+        if (localIdx === -1) {
+          mergedLogs.push(cloudItem);
+        } else {
+          mergedLogs[localIdx] = cloudItem;
+        }
+      });
+    }
+    mergedLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    state.dinnerLogs = mergedLogs;
+
+    // ── 買い物メモ (shoppingList) ──
+    let mergedShop = [];
+    if (shouldMigrate) {
+      mergedShop = [...state.shoppingList];
+    }
+    if (cloud.shoppingList && cloud.shoppingList.length > 0) {
+      cloud.shoppingList.forEach(cloudItem => {
+        const localIdx = mergedShop.findIndex(ls => ls.id === cloudItem.id);
+        if (localIdx === -1) {
+          mergedShop.push(cloudItem);
+        } else {
+          mergedShop[localIdx] = cloudItem;
+        }
+      });
+    }
+    state.shoppingList = mergedShop;
+
+    // 4. マージ（またはクラウドロード）したデータをローカルに保存
+    state.save();
+    
+    // ゲスト用データのクリーンアップ（統合または消去が完了したため）
+    localStorage.removeItem('ingredients_guest');
+    localStorage.removeItem('dinnerLogs_guest');
+    localStorage.removeItem('shoppingList_guest');
+    
+    // 5. マージしたデータを再びクラウドに押し上げて完全に同期
+    await sheetDB.syncUserData(userId, state.ingredients, state.dinnerLogs, state.shoppingList);
+    
+    console.log("Login sync and merge completed successfully. Migrated:", shouldMigrate);
+  } catch (error) {
+    console.error("Login sync failed:", error);
+  }
+}
+
+// ─── 9. SNS/会員・設定系イベント ───
+
+// モーダル開閉
+document.getElementById('tl-btn-goto-login')?.addEventListener('click', () => openModal('modal-login'));
+document.getElementById('btn-open-login-modal')?.addEventListener('click', () => openModal('modal-login'));
+document.getElementById('btn-open-register-modal')?.addEventListener('click', () => openModal('modal-register'));
+
+document.getElementById('btn-switch-to-register')?.addEventListener('click', () => {
+  closeModal('modal-login');
+  setTimeout(() => openModal('modal-register'), 300);
+});
+document.getElementById('btn-switch-to-login')?.addEventListener('click', () => {
+  closeModal('modal-register');
+  setTimeout(() => openModal('modal-login'), 300);
+});
+
+// 新規登録
+document.getElementById('form-register')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('register-username').value.trim();
+  const nickname = document.getElementById('register-nickname').value.trim();
+  const pass = document.getElementById('register-password').value;
+  const passConf = document.getElementById('register-password-confirm').value;
+  const err = document.getElementById('register-error-msg');
+  
+  if (pass !== passConf) {
+    err.textContent = 'パスワードが一致しません';
+    err.classList.remove('hidden');
+    return;
+  }
+  
+  try {
+    const user = await sheetDB.register(username, pass, nickname);
+    
+    // クラウド側と同期・マージを行う
+    await syncOnLogin(user.id);
+
+    closeModal('modal-register');
+    e.target.reset();
+    err.classList.add('hidden');
+    renderAll();
+    
+    // マイページタブへ移動
+    document.querySelector('[data-tab="tab-mypage"]').click();
+  } catch (error) {
+    err.textContent = error.message;
+    err.classList.remove('hidden');
+  }
+});
+
+// ログイン
+document.getElementById('form-login')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('login-username').value.trim();
+  const pass = document.getElementById('login-password').value;
+  const err = document.getElementById('login-error-msg');
+  
+  try {
+    const user = await sheetDB.login(username, pass);
+    
+    // クラウド側と同期・マージを行う
+    await syncOnLogin(user.id);
+
+    closeModal('modal-login');
+    e.target.reset();
+    err.classList.add('hidden');
+    renderAll();
+    document.querySelector('[data-tab="tab-mypage"]').click();
+  } catch (error) {
+    err.textContent = error.message;
+    err.classList.remove('hidden');
+  }
+});
+
+// ログアウト
+document.getElementById('btn-logout')?.addEventListener('click', () => {
+  if (confirm('ログアウトしますか？')) {
+    sheetDB.logout();
+    state.load(); // ゲスト用の領域（または空のデータ）に切り替えて再ロードする
+    renderAll();
+  }
+});
+
+// プロフィール一括保存
+document.getElementById('btn-save-profile')?.addEventListener('click', async () => {
+  const user = sheetDB.getCurrentUser();
+  if (!user) return;
+
+  const usernameInput = document.getElementById('mypage-username-input');
+  const nicknameInput = document.getElementById('mypage-nickname-input');
+  const bioInput = document.getElementById('mypage-bio');
+  const avatarInput = document.getElementById('mypage-avatar-input');
+  
+  const username = usernameInput ? usernameInput.value.trim() : '';
+  const nickname = nicknameInput ? nicknameInput.value.trim() : '';
+  const bio = bioInput ? bioInput.value.trim() : '';
+  let avatarEmoji = avatarInput ? avatarInput.value : '🧑‍🍳';
+  
+  if (!username) {
+    alert('ユーザーネームを入力してください');
+    return;
+  }
+  if (!nickname) {
+    alert('ニックネームを入力してください');
+    return;
+  }
+
+  // アバター文字数検証
+  let charCount = 0;
+  if (avatarEmoji) {
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+      const segmenter = new Intl.Segmenter('ja', { granularity: 'grapheme' });
+      charCount = Array.from(segmenter.segment(avatarEmoji)).length;
+    } else {
+      charCount = Array.from(avatarEmoji).length;
+    }
+  }
+
+  if (charCount > 1) {
+    alert('アバターは1文字のみ設定可能です。');
+    if (avatarInput) {
+      avatarInput.focus();
+      avatarInput.style.borderColor = '#ff3b30';
+    }
+    const warningEl = document.getElementById('mypage-avatar-warning');
+    if (warningEl) warningEl.style.display = 'block';
+    return;
+  }
+
+  if (!avatarEmoji) {
+    avatarEmoji = '🧑‍🍳';
+  }
+
+  const btn = document.getElementById('btn-save-profile');
+  btn.disabled = true;
+  btn.textContent = '保存中...';
+
+  try {
+    await sheetDB.updateProfile(user.id, {
+      username: username,
+      nickname: nickname,
+      bio: bio,
+      avatarEmoji: avatarEmoji
+    });
+    alert('プロフィールを保存しました');
+    renderAll();
+  } catch(e) {
+    alert(e.message || '保存に失敗しました。ユーザー名が重複している可能性があります。');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'プロフィールを保存';
+  }
+});
+
+// アバター入力の1文字制限と警告・プレビューのリアルタイム制御
+document.getElementById('mypage-avatar-input')?.addEventListener('input', (e) => {
+  const input = e.target;
+  const val = input.value;
+  const warningEl = document.getElementById('mypage-avatar-warning');
+  const previewEl = document.getElementById('mypage-avatar');
+  
+  if (!val) {
+    if (warningEl) warningEl.style.display = 'none';
+    input.style.borderColor = '';
+    if (previewEl) previewEl.textContent = '🧑‍🍳';
+    return;
+  }
+  
+  // 文字数（書記素）の判定
+  let charCount = 0;
+  let firstChar = '';
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter('ja', { granularity: 'grapheme' });
+    const segments = Array.from(segmenter.segment(val));
+    charCount = segments.length;
+    if (charCount > 0) firstChar = segments[0].segment;
+  } else {
+    const points = Array.from(val);
+    charCount = points.length;
+    if (charCount > 0) firstChar = points[0];
+  }
+  
+  if (charCount > 1) {
+    if (warningEl) warningEl.style.display = 'block';
+    input.style.borderColor = '#ff3b30';
+  } else {
+    if (warningEl) warningEl.style.display = 'none';
+    input.style.borderColor = '';
+    if (previewEl && firstChar) previewEl.textContent = firstChar;
+  }
+});
+
+// フォーカスアウト時に自動的に1文字に丸める
+document.getElementById('mypage-avatar-input')?.addEventListener('blur', (e) => {
+  const input = e.target;
+  const val = input.value;
+  if (!val) return;
+  
+  let firstChar = val;
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter('ja', { granularity: 'grapheme' });
+    const segments = Array.from(segmenter.segment(val));
+    if (segments.length > 0) firstChar = segments[0].segment;
+  } else {
+    const points = Array.from(val);
+    if (points.length > 0) firstChar = points[0];
+  }
+  
+  input.value = firstChar;
+  input.style.borderColor = '';
+  const warningEl = document.getElementById('mypage-avatar-warning');
+  if (warningEl) warningEl.style.display = 'none';
+  const previewEl = document.getElementById('mypage-avatar');
+  if (previewEl) previewEl.textContent = firstChar;
+});
+
+
+
+// 他ユーザープロフィールモーダルを開く
+async function openUserProfileModal(userId) {
+  const user = sheetDB.getCurrentUser();
+  if (!user) {
+    alert('プロフィールを見るにはログインしてください');
+    return;
+  }
+  
+  if (userId === user.id) {
+    // 自分の場合はマイページへ飛ばす
+    document.querySelector('[data-tab="tab-mypage"]').click();
+    return;
+  }
+  
+  try {
+    const prof = await sheetDB.getUserProfile(userId);
+    const targetUser = prof.user;
+    
+    document.getElementById('user-profile-avatar').textContent = targetUser.avatarEmoji || '🧑‍🍳';
+    document.getElementById('user-profile-nickname').textContent = targetUser.nickname || targetUser.username;
+    document.getElementById('user-profile-username').textContent = '@' + targetUser.username;
+    document.getElementById('user-profile-bio').textContent = targetUser.bio || '自己紹介はありません';
+    
+    document.getElementById('user-profile-following').textContent = prof.followingCount || 0;
+    document.getElementById('user-profile-followers').textContent = prof.followersCount || 0;
+    
+    // フォローボタン状態
+    const btnFollow = document.getElementById('btn-follow-toggle');
+    const isFollowing = await sheetDB.isFollowing(user.id, userId);
+    
+    btnFollow.setAttribute('data-userid', userId);
+    if (isFollowing) {
+      btnFollow.textContent = 'フォロー中';
+      btnFollow.classList.add('following');
+    } else {
+      btnFollow.textContent = 'フォローする';
+      btnFollow.classList.remove('following');
+    }
+    
+    openModal('modal-user-profile');
+  } catch(e) {
+    alert('プロフィールを取得できませんでした');
+  }
+}
+
+// フォロートグルアクション
+document.getElementById('btn-follow-toggle')?.addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  const targetId = btn.getAttribute('data-userid');
+  const user = sheetDB.getCurrentUser();
+  if (!user || !targetId) return;
+  
+  const isFollowing = btn.classList.contains('following');
+  btn.disabled = true;
+  try {
+    if (isFollowing) {
+      await sheetDB.unfollow(user.id, targetId);
+      btn.textContent = 'フォローする';
+      btn.classList.remove('following');
+    } else {
+      await sheetDB.follow(user.id, targetId);
+      btn.textContent = 'フォロー中';
+      btn.classList.add('following');
+    }
+    renderAll();
+  } catch(err) {
+    alert('エラーが発生しました');
+  }
+  btn.disabled = false;
+});
+
+/**
+ * パスワード表示トグル（一瞬だけ表示＆長押し）機能の初期化
+ */
+function initPasswordToggles() {
+  document.querySelectorAll('.password-wrapper').forEach(wrapper => {
+    const input = wrapper.querySelector('input');
+    const button = wrapper.querySelector('.password-toggle-btn');
+    if (!input || !button) return;
+
+    const openEye = button.querySelector('.eye-open');
+    const closedEye = button.querySelector('.eye-closed');
+
+    let hideTimeout = null;
+    let pressTimer = null;
+    let isHeld = false;
+
+    function showPassword() {
+      input.type = 'text';
+      openEye?.classList.remove('hidden');
+      closedEye?.classList.add('hidden');
+    }
+
+    function hidePassword() {
+      input.type = 'password';
+      openEye?.classList.add('hidden');
+      closedEye?.classList.remove('hidden');
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+      }
+    }
+
+    // 状態トグル関数（通常タップ用）
+    function togglePassword() {
+      if (hideTimeout || input.type === 'text') {
+        hidePassword();
+      } else {
+        showPassword();
+        // 2秒後に自動的に非表示にする
+        hideTimeout = setTimeout(() => {
+          hidePassword();
+        }, 2000);
+      }
+    }
+
+    // タッチ・クリック長押し対応 (Pointer Events)
+    button.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      e.preventDefault();
+      
+      isHeld = false;
+      
+      // すでにタイマーがあればクリア
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+      }
+
+      // 長押し判定用タイマー（250ms長押ししたら「ホールド状態」とみなす）
+      pressTimer = setTimeout(() => {
+        isHeld = true;
+        showPassword();
+      }, 250);
+    });
+
+    // 指やマウスを離したとき
+    const handleRelease = (e) => {
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+
+      if (isHeld) {
+        // 長押ししていた場合は、離した瞬間に即非表示
+        hidePassword();
+        isHeld = false;
+      }
+    };
+
+    button.addEventListener('pointerup', handleRelease);
+    button.addEventListener('pointerleave', handleRelease);
+    button.addEventListener('pointercancel', handleRelease);
+
+    // タップが完了したときに呼ばれるclickイベント
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      // 長押し（ホールド状態）されていた場合はクリック処理をスキップ
+      if (isHeld) {
+        isHeld = false;
+        return;
+      }
+      // 通常の短いタップとしてトグル処理（2秒自動非表示タイマー付き）を実行
+      togglePassword();
+    });
+  });
+}
+
+/**
+ * 現在のローカルの冷蔵庫・履歴・買い物メモをバックグラウンドでクラウドへ非同期同期する
+ */
+async function triggerCloudSync() {
+  if (!window.sheetDB || !sheetDB.isLive()) return;
+  const user = sheetDB.getCurrentUser();
+  if (!user) return;
+
+  try {
+    // 非同期で上書き同期実行
+    await sheetDB.syncUserData(user.id, state.ingredients, state.dinnerLogs, state.shoppingList);
+    console.log("Cloud sync completed successfully.");
+  } catch (error) {
+    console.error("Cloud sync failed:", error);
+  }
+}
+
+
+
 // ─── 7. アプリ初期化実行 ───
 state.load();
 renderAll();
+initPasswordToggles();
+
+// ログイン中の場合は起動時にバックグラウンドで最新データを同期マージする
+const currentUser = sheetDB.getCurrentUser();
+if (currentUser) {
+  syncOnLogin(currentUser.id).then(() => {
+    renderAll();
+  });
+}
+
+// ─── ユーザーアバター＆フォロー一覧の制御 ───
+
+/**
+ * フォロー/フォロワー一覧モーダルを開く
+ */
+async function openFollowListModal(targetUserId, type) {
+  const container = document.getElementById('follow-list-container');
+  const title = document.getElementById('follow-list-title');
+  if (!container || !title) return;
+
+  title.textContent = type === 'following' ? 'フォロー中' : 'フォロワー';
+  container.innerHTML = '<p style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 32px 0;">読み込み中...</p>';
+  
+  openModal('modal-follow-list');
+
+  try {
+    let targetIds = [];
+    if (type === 'following') {
+      const res = await sheetDB.getFollowingIds(targetUserId);
+      targetIds = res || [];
+    } else {
+      const res = await sheetDB.getFollowerIds(targetUserId);
+      targetIds = res || [];
+    }
+    
+    const allUsers = await sheetDB.getAllUsers();
+    const filteredUsers = allUsers.filter(u => targetIds.map(String).includes(String(u.id)));
+
+    if (filteredUsers.length === 0) {
+      container.innerHTML = `<p style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 32px 0;">${type === 'following' ? 'フォローしているユーザーはいません' : 'フォロワーはいません'}</p>`;
+      return;
+    }
+
+    container.innerHTML = filteredUsers.map(u => {
+      const emoji = u.avatarEmoji || '🧑‍🍳';
+      const dispName = u.nickname || u.username;
+      return `
+        <div class="search-user-card" data-userid="${u.id}">
+          <div class="search-user-info">
+            <div class="search-user-avatar">${emoji}</div>
+            <div class="search-user-meta">
+              <span class="search-user-nickname">${dispName}</span>
+              <span class="search-user-username">@${u.username}</span>
+            </div>
+          </div>
+          <button type="button" class="search-view-profile-btn" data-userid="${u.id}">プロフィール</button>
+        </div>
+      `;
+    }).join('');
+
+    // カードタップでプロフィールモーダルを開く
+    container.querySelectorAll('.search-user-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const uid = card.getAttribute('data-userid');
+        closeModal('modal-follow-list');
+        closeModal('modal-user-profile');
+        openUserProfileModal(uid);
+      });
+    });
+    
+    container.querySelectorAll('.search-view-profile-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const uid = btn.getAttribute('data-userid');
+        closeModal('modal-follow-list');
+        closeModal('modal-user-profile');
+        openUserProfileModal(uid);
+      });
+    });
+
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = '<p style="text-align: center; color: var(--red); font-size: 0.85rem; padding: 32px 0;">読み込みに失敗しました</p>';
+  }
+}
+
+// フォローリストのイベントバインド
+document.getElementById('btn-close-follow-list')?.addEventListener('click', () => {
+  closeModal('modal-follow-list');
+});
+
+// マイページの統計クリック
+document.getElementById('btn-mypage-following')?.addEventListener('click', () => {
+  const user = sheetDB.getCurrentUser();
+  if (user) openFollowListModal(user.id, 'following');
+});
+document.getElementById('btn-mypage-followers')?.addEventListener('click', () => {
+  const user = sheetDB.getCurrentUser();
+  if (user) openFollowListModal(user.id, 'followers');
+});
+
+// 他ユーザープロフィールの統計クリック
+document.getElementById('btn-user-profile-following')?.addEventListener('click', () => {
+  const btn = document.getElementById('btn-follow-toggle');
+  const userId = btn ? btn.getAttribute('data-userid') : null;
+  if (userId) openFollowListModal(userId, 'following');
+});
+document.getElementById('btn-user-profile-followers')?.addEventListener('click', () => {
+  const btn = document.getElementById('btn-follow-toggle');
+  const userId = btn ? btn.getAttribute('data-userid') : null;
+  if (userId) openFollowListModal(userId, 'followers');
+});

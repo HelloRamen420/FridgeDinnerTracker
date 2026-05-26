@@ -100,7 +100,7 @@ function analyzeUserPreferences() {
     const weight = Math.pow(rating / 5.0, 2);
     
     // components 配列がない場合はその場で動的抽出
-    const comps = log.components || extractMealComponents(log.name, log.ingredientsUsed, log.memo);
+    const comps = log.components || extractMealComponents(log.name, log.ingredientsUsed || log.usedIngredients || [], log.memo);
     
     comps.forEach(comp => {
       if (totalScores[comp] !== undefined) {
