@@ -206,10 +206,12 @@ function parseJapaneseFloat(str) {
 
 // 消費期限までの残り日数を計算
 function getDaysRemaining(expiryDateString) {
+  if (!expiryDateString) return 999; // 期限なし
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const expiry = new Date(expiryDateString);
+  if (isNaN(expiry.getTime())) return 999; // パース失敗時は安全なフォールバック
   expiry.setHours(0, 0, 0, 0);
 
   const diffTime = expiry.getTime() - today.getTime();
@@ -226,7 +228,11 @@ function getExpiryStatus(days) {
 
 // 日付の和風フォーマット
 function formatJapaneseDate(dateString, withDayOfWeek = true) {
+  if (!dateString) return '日付不明';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    return dateString; // パースできない場合は元の文字列をそのまま返してRangeErrorを回避（フォールバック）
+  }
   const formatter = new Intl.DateTimeFormat('ja-JP', {
     year: 'numeric',
     month: '2-digit',
