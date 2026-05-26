@@ -69,6 +69,10 @@ function setup() {
  * GET リクエストの受け口
  */
 function doGet(e) {
+  // アクションが指定されていない（ブラウザで直接開いた）場合は、HTML形式のライブダッシュボードを表示する
+  if (!e || !e.parameter || !e.parameter.action) {
+    return renderHtmlDashboard();
+  }
   return handleRequest(e);
 }
 
@@ -76,6 +80,23 @@ function doGet(e) {
  * POST リクエストの受け口 (GASでのCORS対策・簡易運用のためにdoGetへ転送)
  */
 function doPost(e) {
+  if (e && e.postData && e.postData.contents) {
+    try {
+      var postData = JSON.parse(e.postData.contents);
+      var mockE = {
+        parameter: {},
+        postData: e.postData
+      };
+      for (var key in postData) {
+        if (postData.hasOwnProperty(key)) {
+          mockE.parameter[key] = postData[key];
+        }
+      }
+      return handleRequest(mockE);
+    } catch (err) {
+      // JSONパースに失敗した場合は通常の e で handleRequest にフォールバック
+    }
+  }
   return handleRequest(e);
 }
 
@@ -569,4 +590,330 @@ function _clearUserRows(sheet, userId) {
       sheet.deleteRow(i + 1);
     }
   }
+}
+
+/**
+ * ブラウザで直接開いたときに、スプレッドシートの各データをHTMLで綺麗に表示するダッシュボード
+ */
+function renderHtmlDashboard() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // 各データを取得
+  const timelineData = _getSheetData('Timeline').reverse(); // 新しい順
+  const ingredientsData = _getSheetData('Ingredients');
+  const logsData = _getSheetData('Logs').reverse(); // 新しい順
+  const usersData = _getSheetData('Users');
+  
+  // HTMLテンプレートの構築
+  let html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FridgeDinnerTracker - クラウドデータベースビューワー</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #F97316;
+      --primary-gradient: linear-gradient(135deg, #F97316 0%, #EC4899 100%);
+      --bg: #F3F4F6;
+      --card-bg: #FFFFFF;
+      --text: #1F2937;
+      --text-sub: #6B7280;
+      --border: #E5E7EB;
+    }
+    body {
+      font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+    }
+    header {
+      background: var(--primary-gradient);
+      color: white;
+      padding: 40px 20px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2.25rem;
+      font-weight: 700;
+    }
+    header p {
+      margin: 8px 0 0;
+      opacity: 0.9;
+      font-size: 1rem;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 40px 0 20px;
+      border-left: 5px solid var(--primary);
+      padding-left: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .badge {
+      background-color: var(--primary);
+      color: white;
+      font-size: 0.8rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+    }
+    .card-img-wrapper {
+      width: 100%;
+      height: 180px;
+      background: #E5E7EB;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      overflow: hidden;
+      position: relative;
+    }
+    .card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .card-body {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-meta {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin: 0 0 10px;
+    }
+    .card-text {
+      font-size: 0.9rem;
+      color: var(--text-sub);
+      flex: 1;
+      margin-bottom: 15px;
+    }
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: auto;
+    }
+    .tag {
+      background-color: #F3F4F6;
+      color: var(--text);
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      border: 1px solid var(--border);
+      margin-bottom: 30px;
+    }
+    th, td {
+      padding: 14px 20px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background-color: #FAFAFA;
+      font-weight: 600;
+      color: var(--text);
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #FFE4E6;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-sub);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+      margin-top: 60px;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>FridgeDinnerTracker</h1>
+    <p>☁️ クラウド同期データベース・ライブダッシュボード</p>
+  </header>
+  
+  <div class="container">
+    <!-- タイムラインセクション -->
+    <div class="section-title">
+      <span>👥 タイムライン共有レシピ</span>
+      <span class="badge">\${timelineData.length}件</span>
+    </div>
+    <div class="grid">`;
+
+  timelineData.forEach(p => {
+    let photoHtml = `<div class="card-img-wrapper">🍳</div>`;
+    if (p.photo && p.photo.indexOf('data:') === 0) {
+      photoHtml = `<div class="card-img-wrapper"><img src="\${p.photo}" class="card-img" alt="\${p.dishName}"></div>`;
+    }
+    
+    let ingredients = [];
+    try { ingredients = JSON.parse(p.ingredients || '[]'); } catch(e) {}
+    let tagsHtml = '';
+    if (ingredients.length > 0) {
+      tagsHtml = `<div class="tags">` + ingredients.map(ing => {
+        const name = typeof ing === 'object' ? ing.name : ing;
+        return `<span class="tag">🥕 \${name}</span>`;
+      }).join('') + `</div>`;
+    }
+
+    const ratingStars = '⭐'.repeat(p.rating || 5);
+    const dateStr = p.date || (p.postedAt ? p.postedAt.split('T')[0] : '');
+
+    html += `
+      <div class="card">
+        \${photoHtml}
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="user-avatar">\${p.avatarEmoji || '🧑‍🍳'}</span>
+            <strong>\${p.nickname || 'ユーザー'}</strong>
+            <span>• \${dateStr}</span>
+          </div>
+          <h3 class="card-title">\${p.dishName} <span style="font-size:0.9rem; font-weight:normal;">\${ratingStars}</span></h3>
+          <p class="card-text">\${p.memo || 'メモはありません。'}</p>
+          \${tagsHtml}
+        </div>
+      </div>`;
+  });
+
+  html += `
+    </div>
+
+    <!-- 冷蔵庫の在庫状況セクション -->
+    <div class="section-title">
+      <span>🧊 ユーザー登録中の冷蔵庫食材（一部抜粋）</span>
+      <span class="badge">\${ingredientsData.length}件</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>食材名</th>
+          <th>カテゴリ</th>
+          <th>数量</th>
+          <th>消費期限</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  ingredientsData.slice(0, 10).forEach(ing => {
+    html += `
+        <tr>
+          <td><strong>\${ing.name}</strong></td>
+          <td><span class="tag">\${ing.category || 'その他'}</span></td>
+          <td>\${ing.quantity || ''} \${ing.unit || ''}</td>
+          <td>\${ing.expiryDate || '未設定'}</td>
+        </tr>`;
+  });
+
+  if (ingredientsData.length === 0) {
+    html += `<tr><td colspan="4" style="text-align:center; color:var(--text-sub);">冷蔵庫に食材はありません。</td></tr>`;
+  }
+
+  html += `
+      </tbody>
+    </table>
+
+    <!-- ユーザー一覧セクション -->
+    <div class="section-title">
+      <span>🧑‍🍳 登録済みシェフメンバー</span>
+      <span class="badge">\${usersData.length}名</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>アバター</th>
+          <th>ニックネーム</th>
+          <th>ユーザーID</th>
+          <th>登録日</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  usersData.forEach(u => {
+    const regDate = u.createdAt ? u.createdAt.split('T')[0] : '不明';
+    html += `
+        <tr>
+          <td><span style="font-size:1.5rem;">\${u.avatarEmoji || '🧑‍🍳'}</span></td>
+          <td><strong>\${u.nickname || u.username}</strong> (@\${u.username})</td>
+          <td><code style="background:#F3F4F6; padding:2px 6px; border-radius:4px; font-size:0.85rem;">\${u.id}</code></td>
+          <td>\${regDate}</td>
+        </tr>`;
+  });
+
+  html += `
+      </tbody>
+    </table>
+  </div>
+  
+  <footer>
+    <p>© 2026 FridgeDinnerTracker Cloud Server. All rights reserved.</p>
+    <p style="font-size:0.75rem; margin-top:5px; opacity:0.8;">※この画面はデータベースの直接閲覧ページです。アプリの操作はクライアントアプリから行ってください。</p>
+  </footer>
+</body>
+</html>`;
+
+  return HtmlService.createHtmlOutput(html)
+    .setTitle("FridgeDinnerTracker - クラウドデータベースビューワー")
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }

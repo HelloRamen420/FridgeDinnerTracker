@@ -142,35 +142,48 @@ function compressAndResizeImage(file, callback) {
   reader.onload = (e) => {
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-      
-      const MAX_WIDTH = 800;
-      const MAX_HEIGHT = 800;
-      
-      if (width > height) {
-        if (width > MAX_WIDTH) {
-          height *= MAX_WIDTH / width;
-          width = MAX_WIDTH;
+      try {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
         }
-      } else {
-        if (height > MAX_HEIGHT) {
-          width *= MAX_HEIGHT / height;
-          height = MAX_HEIGHT;
-        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // JPEG形式・品質0.7（軽量かつ十分高画質）で圧縮
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        callback(compressedDataUrl);
+      } catch (err) {
+        console.error("Canvas compression failed, falling back to original:", err);
+        callback(e.target.result); // エラー時はオリジナルデータURLでフォールバック
       }
-      
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      
-      // JPEG形式・品質0.7（軽量かつ十分高画質）で圧縮
-      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-      callback(compressedDataUrl);
+    };
+    img.onerror = (err) => {
+      console.error("Image load failed, falling back to original:", err);
+      callback(e.target.result); // 画像読み込み失敗時もオリジナルでフォールバック
     };
     img.src = e.target.result;
+  };
+  reader.onerror = (err) => {
+    console.error("FileReader failed:", err);
+    callback(null); // ファイル読み込み失敗時はnullでコールバック
   };
   reader.readAsDataURL(file);
 }
@@ -841,8 +854,11 @@ function renderLogs() {
         
         ${memoPreview}
         
-        <div class="log-card-footer">
-          <span>詳細・レシピを見る →</span>
+        <div class="log-card-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+          <span style="font-size: 0.8rem; color: var(--primary);">詳細・レシピを見る →</span>
+          <button type="button" class="btn-share-log-timeline" data-id="${log.id}" style="padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; background-color: var(--primary-light); color: var(--primary); border: none; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 4px;">
+            📲 タイムラインに共有
+          </button>
         </div>
       </div>
     `;
@@ -850,11 +866,64 @@ function renderLogs() {
   
   // 詳細ポップアップのイベントバインド
   document.querySelectorAll('.log-card').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      // 共有ボタンのクリック時は詳細を開かないように防ぐ
+      if (e.target.closest('.btn-share-log-timeline')) return;
+      
       const id = card.getAttribute('data-id');
       const log = state.dinnerLogs.find(item => item.id === id);
       if (log) {
         openLogDetailModal(log);
+      }
+    });
+  });
+
+  // ワンタップ共有ボタンのイベントバインド
+  document.querySelectorAll('.btn-share-log-timeline').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation(); // 親要素のカードクリックイベントを伝播させない
+      
+      const currentUser = sheetDB.getCurrentUser();
+      if (!currentUser) {
+        alert('タイムラインにレシピを共有するには、ログインが必要です！');
+        return;
+      }
+      
+      const id = btn.getAttribute('data-id');
+      const log = state.dinnerLogs.find(item => item.id === id);
+      if (!log) return;
+      
+      btn.disabled = true;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '📤 共有中...';
+      btn.style.backgroundColor = 'var(--border-color)';
+      btn.style.color = 'var(--text-sub)';
+      
+      try {
+        await sheetDB.postDinner(null, log);
+        
+        // 極上のマイクロインタラクションフィードバック
+        btn.innerHTML = '✅ 投稿しました！';
+        btn.style.backgroundColor = '#E0FDF4';
+        btn.style.color = '#10B981';
+        
+        // タイムラインを再描画
+        renderTimeline();
+        
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.style.backgroundColor = 'var(--primary-light)';
+          btn.style.color = 'var(--primary)';
+          btn.disabled = false;
+        }, 1500);
+      } catch (err) {
+        console.error(err);
+        alert('共有に失敗しました。ネットワーク状況を確認してください。');
+        btn.innerHTML = originalText;
+        btn.style.backgroundColor = 'var(--primary-light)';
+        btn.style.color = 'var(--primary)';
+        btn.disabled = false;
       }
     });
   });
@@ -887,6 +956,12 @@ async function renderTimeline() {
       return;
     }
     
+    // エスケープ処理用の簡易ヘルパー
+    const escapeString = (str) => {
+      if (!str) return '';
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    };
+
     emptyState.classList.add('hidden');
     container.innerHTML = posts.map(post => {
       const isMyPost = post.userId === user.id;
@@ -916,7 +991,12 @@ async function renderTimeline() {
               <span class="tl-post-rating">★ ${parseFloat(post.rating || 5).toFixed(1)}</span>
             </div>
             <div class="tl-post-ingredients">${tags}</div>
-            ${post.memo ? `<div class="tl-post-memo-preview">${post.memo}</div>` : ''}
+            ${post.memo ? `
+              <div class="tl-post-memo-section">
+                <div class="tl-post-memo-preview" id="memo-${post.id}" style="white-space: pre-wrap; line-height: 1.6; font-size: 0.85rem; color: var(--text-main);">${escapeString(post.memo)}</div>
+                <button class="tl-markdown-toggle-btn" data-postid="${post.id}" data-is-md="false">📝 マークダウンで表示する</button>
+              </div>
+            ` : ''}
           </div>
         </div>
       `;
@@ -927,6 +1007,31 @@ async function renderTimeline() {
       avatar.addEventListener('click', () => {
         const userId = avatar.getAttribute('data-userid');
         openUserProfileModal(userId);
+      });
+    });
+
+    // マークダウン切り替えイベント
+    container.querySelectorAll('.tl-markdown-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const postId = btn.getAttribute('data-postid');
+        const memoDiv = document.getElementById(`memo-${postId}`);
+        const post = posts.find(p => p.id === postId);
+        if (!post || !memoDiv) return;
+        
+        const isMd = btn.getAttribute('data-is-md') === 'true';
+        if (isMd) {
+          // プレーンテキストに戻す
+          memoDiv.innerHTML = escapeString(post.memo);
+          memoDiv.style.whiteSpace = 'pre-wrap';
+          btn.innerHTML = '📝 マークダウンで表示する';
+          btn.setAttribute('data-is-md', 'false');
+        } else {
+          // マークダウンでレンダリング
+          memoDiv.innerHTML = `<div class="markdown-content">${renderMarkdown(post.memo)}</div>`;
+          memoDiv.style.whiteSpace = 'normal';
+          btn.innerHTML = '📄 プレーンテキストで表示する';
+          btn.setAttribute('data-is-md', 'true');
+        }
       });
     });
     
@@ -1384,6 +1489,24 @@ function openLogModal(defaultDishName = '', existingLog = null) {
     buildFridgeChecklist([]);
   }
   
+  // タイムライン共有チェックボックスの初期表示制御
+  const shareCheckbox = document.getElementById('log-share-timeline');
+  const shareDesc = document.getElementById('log-share-timeline-desc');
+  if (shareCheckbox && shareDesc) {
+    const currentUser = sheetDB.getCurrentUser();
+    if (!currentUser) {
+      shareCheckbox.checked = false;
+      shareCheckbox.disabled = true;
+      shareDesc.textContent = '※ログインするとタイムラインへの共有機能が利用できます。';
+      shareDesc.style.color = 'var(--text-sub)';
+    } else {
+      shareCheckbox.checked = true;
+      shareCheckbox.disabled = false;
+      shareDesc.textContent = 'このレシピをSNSタイムラインに投稿し、他の人と共有します。';
+      shareDesc.style.color = 'var(--text-sub)';
+    }
+  }
+
   btnSaveLog.disabled = logNameInput.value.trim() === '';
   openModal('modal-add-log');
 }
@@ -1637,6 +1760,11 @@ btnSaveLog.addEventListener('click', (e) => {
   const ingNamesOnly = usedIngredients.map(item => item.name);
   const components = extractMealComponents(name, ingNamesOnly, memo);
 
+  // 共有用のログを事前に特定する
+  const targetSavedLog = editingLogId 
+    ? state.dinnerLogs.find(item => item.id === editingLogId)
+    : null;
+
   if (editingLogId) {
     // 編集・更新処理
     const index = state.dinnerLogs.findIndex(item => item.id === editingLogId);
@@ -1653,7 +1781,6 @@ btnSaveLog.addEventListener('click', (e) => {
         photo: currentLogPhotoBase64
       };
     }
-    editingLogId = null;
   } else {
     // 新規追加処理
     const newLog = {
@@ -1684,6 +1811,31 @@ btnSaveLog.addEventListener('click', (e) => {
   }
   
   state.save();
+
+  // タイムライン共有スイッチがONかつログイン済みの場合、非同期でタイムラインにも自動投稿する
+  const shareCheckbox = document.getElementById('log-share-timeline');
+  if (shareCheckbox && shareCheckbox.checked) {
+    const currentUser = sheetDB.getCurrentUser();
+    if (currentUser) {
+      // 編集時は事前に取得した対象（編集後の新しいデータが入ったもの）、新規時はunshiftした最新を使用
+      const logToShare = targetSavedLog 
+        ? state.dinnerLogs.find(item => item.id === targetSavedLog.id) 
+        : state.dinnerLogs[0];
+      
+      if (logToShare) {
+        sheetDB.postDinner(null, logToShare).then(() => {
+          console.log("Automatically shared to timeline.");
+          renderTimeline();
+        }).catch(err => {
+          console.error("Auto timeline share failed:", err);
+        });
+      }
+    }
+  }
+
+  // 最後に editingLogId を安全にクリアする
+  editingLogId = null;
+
   renderAll();
   closeModal('modal-add-log');
 });

@@ -15,7 +15,17 @@ const sheetDB = (() => {
   const LS_KEY_SIM_FOLLOWS   = 'sheetDB_sim_follows';
   const LS_KEY_SIM_TIMELINE  = 'sheetDB_sim_timeline';
 
-  let _gasUrl = 'https://script.google.com/macros/s/AKfycbxmbQHawlLlFVnTFbR1GCwA7QhcOhL7JCryFCDOoD-MQ6ZahZVm0Fb29JxxTVneeQFf5w/exec';
+  // 古いURLやコピペミスのURLから、正しい新しいURLへの自動マイグレーション
+  const LEGACY_URL = 'https://script.google.com/macros/s/AKfycbxmbQHawlLlFVnTFbR1GCwA7QhcOhL7JCryFCDOoD-MQ6ZahZVm0Fb29JxxTVneeQFf5w/exec';
+  const TYPO_URL = 'https://script.google.com/macros/s/AKfycbHG7pG2fMv-TppnV_uNEYEQCcpvHLWmvkZU_fxc4L46wUV_n70PXGbVsGGEGg8lgWYHw/exec';
+  const NEW_DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbzHG7pG2fMv-TppnV_uNEYEQCcpvHLWmvkZU_fxc4L46wUV_n70PXGbVsGGEGg8lgWYHw/exec';
+  
+  const currentSaved = localStorage.getItem(LS_KEY_URL);
+  if (currentSaved === LEGACY_URL || currentSaved === TYPO_URL) {
+    localStorage.setItem(LS_KEY_URL, NEW_DEFAULT_URL);
+  }
+
+  let _gasUrl = localStorage.getItem(LS_KEY_URL) || NEW_DEFAULT_URL;
 
   // ── ヘルパー ──
   function _isLive() { return !!_gasUrl; }
@@ -41,12 +51,23 @@ const sheetDB = (() => {
   /** GAS WebApp への通信ラッパー */
   async function _callGAS(action, params = {}) {
     if (!_isLive()) throw new Error('GAS URL が設定されていません');
-    const url = new URL(_gasUrl);
-    url.searchParams.set('action', action);
+    
+    // アクションとパラメータをPOST用データとしてまとめる
+    const postData = { action };
     Object.entries(params).forEach(([k, v]) => {
-      url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
+      postData[k] = typeof v === 'object' ? JSON.stringify(v) : String(v);
     });
-    const resp = await fetch(url.toString(), { redirect: 'follow' });
+    
+    // text/plain 形式で JSON をそのまま送信（CORS単純リクエストを維持しつつ、サイズ制限を完全回避）
+    const resp = await fetch(_gasUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify(postData),
+      redirect: 'follow'
+    });
+    
     if (!resp.ok) throw new Error(`GAS通信エラー (${resp.status})`);
     const json = await resp.json();
     if (json.error) throw new Error(json.error);
@@ -281,7 +302,7 @@ const sheetDB = (() => {
         photo: logData.photo || '',
         rating: logData.rating || 5,
         servings: logData.servings || '',
-        ingredients: logData.usedIngredients || [],
+        ingredients: logData.usedIngredients || logData.ingredientsUsed || [],
         memo: logData.memo || '',
         date: logData.date || new Date().toISOString().split('T')[0],
         postedAt: new Date().toISOString()

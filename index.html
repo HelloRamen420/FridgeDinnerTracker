@@ -469,6 +469,18 @@
             </div>
           </div>
           
+          <!-- タイムラインへの共有設定トグル -->
+          <div class="form-section" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1.5px dashed var(--border-color); margin-top: 16px;">
+            <div style="flex: 1; padding-right: 12px;">
+              <label class="form-label" style="margin: 0; font-weight: 600;">タイムラインに共有する</label>
+              <span id="log-share-timeline-desc" style="font-size: 0.75rem; color: var(--text-sub); display: block; margin-top: 2px;">このレシピをSNSタイムラインに投稿し、他の人と共有します。</span>
+            </div>
+            <label class="switch-container">
+              <input type="checkbox" id="log-share-timeline" checked>
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          
           <!-- 削除ボタンエリア (編集モード時のみJSで表示制御) -->
           <div class="form-section hidden" id="log-delete-section">
             <button type="button" class="form-btn-delete" id="btn-delete-log">この記録を削除する</button>
