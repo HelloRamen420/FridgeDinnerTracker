@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="冷蔵庫夕食">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/5778/5778508.png">
+  <link rel="apple-touch-icon" href="./icon-512.png">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -590,6 +590,66 @@
               <li>「シークレットモード（プライベートブラウズ）」では閉じると消えるため、通常のタブでお使いください。</li>
               <li>アプリを変更・削除するような初期化処理はプログラム内に一切入っていないため、普段通り使う分には消えません。</li>
             </ul>
+          </div>
+        </div>
+
+        <!-- マークダウンヘルプセクション -->
+        <div class="detail-section" style="margin-bottom: 24px;">
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); border-left: 3px solid var(--primary); padding-left: 8px; margin-bottom: 12px;">📝 レシピメモの書き方 (マークダウン記法)</h4>
+          <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 10px; line-height: 1.4;">
+            晩ごはん記録の「レシピメモ」では、簡易的なマークダウン記法が使えます。文字を装飾して綺麗なレシピ本のように見やすく整理できます。
+          </p>
+          <div style="background-color: var(--bg-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); font-size: 0.8rem;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-sub); font-size: 0.75rem;">
+                  <th style="padding: 6px 4px; width: 45%;">書き方（入力例）</th>
+                  <th style="padding: 6px 4px;">表示効果（レンダリング結果）</th>
+                </tr>
+              </thead>
+              <tbody style="color: var(--text-main);">
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 8px 4px; font-family: monospace; font-weight: 600; color: var(--primary);"># 大見出し</td>
+                  <td style="padding: 8px 4px; font-weight: 700; font-size: 0.95rem;">大見出し (料理カテゴリなど)</td>
+                </tr>
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 8px 4px; font-family: monospace; font-weight: 600; color: var(--primary);">## 中見出し</td>
+                  <td style="padding: 8px 4px; font-weight: 700; font-size: 0.85rem;">中見出し (材料、作り方など)</td>
+                </tr>
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 8px 4px; font-family: monospace; font-weight: 600; color: var(--primary);">### 小見出し</td>
+                  <td style="padding: 8px 4px; font-weight: 700; font-size: 0.8rem; color: var(--text-sub);">小見出し (下ごしらえなど)</td>
+                </tr>
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 8px 4px; font-family: monospace; font-weight: 600; color: var(--primary);">**太字**</td>
+                  <td style="padding: 8px 4px; font-weight: 700; color: var(--primary);">重要箇所がオレンジの太字に</td>
+                </tr>
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 8px 4px; font-family: monospace; font-weight: 600; color: var(--primary);">*斜体*</td>
+                  <td style="padding: 8px 4px; font-style: italic;">文字が斜体（イタリック）に</td>
+                </tr>
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 8px 4px; font-family: monospace; font-weight: 600; color: var(--primary);">- 箇条書き<br>* 箇条書き</td>
+                  <td style="padding: 8px 4px; margin: 0; padding-left: 12px;">
+                    <ul style="margin: 0; padding-left: 12px; font-size: 0.78rem;">
+                      <li>ハイフンやアスタリスクで</li>
+                      <li>丸付きの箇条書きリストに</li>
+                    </ul>
+                  </td>
+                </tr>
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 8px 4px; font-family: monospace; font-weight: 600; color: var(--primary);">（空行）</td>
+                  <td style="padding: 8px 4px; color: var(--text-sub);">段落間の程よい改行スペースに</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 4px; font-family: monospace; font-weight: 600; color: var(--primary);">普通のテキスト</td>
+                  <td style="padding: 8px 4px;">通常の文字段落として綺麗に自動折り返し</td>
+                </tr>
+              </tbody>
+            </table>
+            <div style="margin-top: 10px; font-size: 0.72rem; color: var(--text-sub); line-height: 1.3; border-top: 1px solid var(--border-color); padding-top: 8px;">
+              ※ リンクや画像、表（Table）、コード等の標準的な一部の複雑な記法は、アプリ内での軽量パース制限のため非対応となっております。上記のタグを組み合わせて美しく整理してください。
+            </div>
           </div>
         </div>
 

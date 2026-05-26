@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fridge-dinner-tracker-v4';
+const CACHE_NAME = 'fridge-dinner-tracker-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,7 @@ const ASSETS = [
   './db.js',
   './icon-512.png',
   './manifest.json',
-  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap'
+  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Noto+Sans+JP:wght@300;400;700&display=swap'
 ];
 
 self.addEventListener('install', (e) => {

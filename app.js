@@ -1242,12 +1242,28 @@ document.querySelectorAll('#bottom-navbar .nav-item').forEach(button => {
 });
 
 // ─── 6. モーダルシート操作 ───
+let modalMaxZIndex = 1000;
+
 function openModal(modalId) {
-  document.getElementById(modalId).classList.add('show');
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modalMaxZIndex++;
+    modal.style.zIndex = modalMaxZIndex;
+    modal.classList.add('show');
+  }
 }
 
 function closeModal(modalId) {
-  document.getElementById(modalId).classList.remove('show');
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.remove('show');
+    // アニメーション完了後に z-index をクリアしてクリーンに保つ
+    setTimeout(() => {
+      if (!modal.classList.contains('show')) {
+        modal.style.zIndex = '';
+      }
+    }, 300);
+  }
 }
 
 // 各種キャンセルボタンの共通動作設定

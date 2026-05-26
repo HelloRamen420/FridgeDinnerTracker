@@ -684,6 +684,7 @@ body {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
+  will-change: opacity;
 }
 
 .modal-overlay.show {
@@ -704,6 +705,7 @@ body {
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
   padding-bottom: var(--safe-area-bottom);
+  will-change: transform;
 }
 
 .modal-overlay.show .modal-sheet {
