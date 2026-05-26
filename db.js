@@ -355,9 +355,23 @@ const sheetDB = (() => {
 
     /** フォロー中のユーザーの投稿のみ取得 (パーソナライズフィード) */
     async getFollowingFeed(userId, limit = 50) {
-      const followingIds = await this.getFollowingIds(userId);
-      // 自分の投稿も含める
-      followingIds.push(userId);
+      let followingIds = [];
+      try {
+        followingIds = await this.getFollowingIds(userId);
+      } catch (e) {
+        console.error("Failed to get following ids, using empty list:", e);
+      }
+      
+      // 確実に配列であることを保証
+      if (!followingIds || !Array.isArray(followingIds)) {
+        followingIds = [];
+      }
+      
+      // 自分自身の投稿も確実に含める（重複防止）
+      if (!followingIds.includes(userId)) {
+        followingIds.push(userId);
+      }
+      
       if (_isLive()) {
         const res = await _callGAS('getFollowingFeed', { userIds: JSON.stringify(followingIds), limit });
         return res.posts || [];

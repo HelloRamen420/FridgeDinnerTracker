@@ -4,10 +4,10 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
       .then(reg => {
         console.log('サービスワーカー登録成功:', reg.scope);
-        
+
         // 起動時にサーバー上の更新ファイルを強制チェック
         reg.update();
-        
+
         // アップデートが検出されインストールされた際の即時反映処理
         reg.onupdatefound = () => {
           const installingWorker = reg.installing;
@@ -73,7 +73,7 @@ const state = {
   ingredients: [],
   dinnerLogs: [],
   shoppingList: [], // 買い物メモ用の配列
-  
+
   // データ保存用ヘルパー
   save() {
     const keys = getStorageKeys();
@@ -84,7 +84,7 @@ const state = {
       triggerCloudSync();
     }
   },
-  
+
   load() {
     // 以前の古いデモサンプルデータを一度だけ自動クリーンアップして初期化
     if (localStorage.getItem('purgedSampleData') !== 'true') {
@@ -98,7 +98,7 @@ const state = {
     const legacyIng = localStorage.getItem('ingredients');
     const legacyLogs = localStorage.getItem('dinnerLogs');
     const legacyShop = localStorage.getItem('shoppingList');
-    
+
     if (legacyIng && !localStorage.getItem('ingredients_guest')) {
       localStorage.setItem('ingredients_guest', legacyIng);
       localStorage.removeItem('ingredients');
@@ -116,7 +116,7 @@ const state = {
     const rawIng = localStorage.getItem(keys.ingredients);
     const rawLogs = localStorage.getItem(keys.dinnerLogs);
     const rawShop = localStorage.getItem(keys.shoppingList);
-    
+
     this.ingredients = rawIng ? JSON.parse(rawIng) : [];
     this.dinnerLogs = rawLogs ? JSON.parse(rawLogs) : [];
     this.shoppingList = rawShop ? JSON.parse(rawShop) : [];
@@ -146,10 +146,10 @@ function compressAndResizeImage(file, callback) {
         const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
-        
+
         const MAX_WIDTH = 800;
         const MAX_HEIGHT = 800;
-        
+
         if (width > height) {
           if (width > MAX_WIDTH) {
             height *= MAX_WIDTH / width;
@@ -161,12 +161,12 @@ function compressAndResizeImage(file, callback) {
             height = MAX_HEIGHT;
           }
         }
-        
+
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-        
+
         // JPEG形式・品質0.7（軽量かつ十分高画質）で圧縮
         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
         callback(compressedDataUrl);
@@ -193,13 +193,13 @@ function parseJapaneseFloat(str) {
   if (str === null || str === undefined) return null;
   const strVal = String(str).trim();
   if (strVal === '') return null;
-  
+
   // 全角の数字、小数点「．」を半角に置換
   let cleaned = strVal.replace(/[０-９．]/g, (s) => {
     if (s === '．') return '.';
     return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
   });
-  
+
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? null : parsed;
 }
@@ -208,10 +208,10 @@ function parseJapaneseFloat(str) {
 function getDaysRemaining(expiryDateString) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const expiry = new Date(expiryDateString);
   expiry.setHours(0, 0, 0, 0);
-  
+
   const diffTime = expiry.getTime() - today.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
@@ -239,21 +239,21 @@ function formatJapaneseDate(dateString, withDayOfWeek = true) {
 // ─── 3. 自作マークダウンレンダラー (iOSメモ風) ───
 function renderMarkdown(text) {
   if (!text) return '<span class="preview-placeholder">何も書かれていません</span>';
-  
+
   // 特殊文字のエスケープを簡易的に防ぎつつ、セキュアに置換
   let html = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-  
+
   // 改行をプレースホルダー化
   const lines = html.split('\n');
   let inList = false;
   let listHtml = '';
-  
+
   const renderedLines = lines.map(line => {
     let cleanLine = line.trim();
-    
+
     // ヘッダー #
     if (cleanLine.startsWith('# ')) {
       return `<h1>${cleanLine.substring(2)}</h1>`;
@@ -266,12 +266,12 @@ function renderMarkdown(text) {
     if (cleanLine.startsWith('## ')) {
       return `<h2>${cleanLine.substring(3)}</h2>`;
     }
-    
+
     // 太字 **text**
     cleanLine = cleanLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     // 斜体 *text*
     cleanLine = cleanLine.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    
+
     // 箇条書きリスト -
     if (cleanLine.startsWith('- ') || cleanLine.startsWith('* ')) {
       const content = cleanLine.substring(2);
@@ -286,20 +286,20 @@ function renderMarkdown(text) {
         return `</ul><p>${cleanLine}</p>`;
       }
     }
-    
+
     // 通常の段落
     if (cleanLine === '') {
       return '<br>';
     }
-    
+
     return `<p>${cleanLine}</p>`;
   });
-  
+
   let result = renderedLines.join('');
   if (inList) {
     result += '</ul>';
   }
-  
+
   // 二重の空行をきれいにする
   return result.replace(/<br><br>/g, '<br>');
 }
@@ -313,37 +313,37 @@ function renderDashboardData() {
   const statsFridge = document.getElementById('stats-fridge-count');
   const statsDinner = document.getElementById('stats-dinner-count');
   const recCardContainer = document.getElementById('recipe-recommendation-card');
-  
+
   // 統計カウンタ
   statsFridge.textContent = `${state.ingredients.length} 品`;
-  
+
   // 今週の料理回数 (直近7日)
   const today = new Date();
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(today.getDate() - 7);
   const dinnerThisWeek = state.dinnerLogs.filter(log => new Date(log.date) >= sevenDaysAgo).length;
   statsDinner.textContent = `${dinnerThisWeek} 回`;
-  
+
   // アラート食材のフィルタ
   const alerts = state.ingredients
     .map(ing => ({ ...ing, days: getDaysRemaining(ing.expiryDate), status: getExpiryStatus(getDaysRemaining(ing.expiryDate)) }))
     .filter(ing => ing.status === 'expired' || ing.status === 'critical')
     .sort((a, b) => a.days - b.days);
-  
+
   // アラートバッジとリスト表示
   if (alerts.length > 0) {
     alertBadge.textContent = alerts.length;
     alertBadge.style.display = 'inline-block';
-    
+
     alertList.innerHTML = alerts.slice(0, 3).map(ing => {
       let warningText = '';
       if (ing.days < 0) warningText = `期限切れ （${Math.abs(ing.days)}日経過)`;
       else if (ing.days === 0) warningText = '今日が期限です';
       else if (ing.days === 1) warningText = '明日まで';
       else warningText = `期限まであと ${ing.days} 日`;
-      
+
       const emoji = INGREDIENT_EMOJI_MAP[ing.category] || "📦";
-      
+
       return `
         <div class="alert-card ${ing.status}">
           <span class="alert-emoji">${emoji}</span>
@@ -355,7 +355,7 @@ function renderDashboardData() {
         </div>
       `;
     }).join('');
-    
+
     if (alerts.length > 3) {
       alertList.innerHTML += `<p style="font-size:0.75rem; text-align:center; color:var(--text-sub); margin-top:8px;">他 ${alerts.length - 3} 件の食材が期限間近です</p>`;
     }
@@ -375,7 +375,7 @@ function renderDashboardData() {
   // --- AI食事構成要素分析の描画 ---
   const profileContainer = document.getElementById('ai-preference-profile-card');
   const prefData = analyzeUserPreferences();
-  
+
   if (!prefData || state.dinnerLogs.length === 0) {
     if (profileContainer) {
       profileContainer.innerHTML = `
@@ -388,7 +388,7 @@ function renderDashboardData() {
     }
   } else {
     const primaryElement = prefData[0]; // 最も比率が高い食事要素
-    
+
     let profileDesc = "";
     if (primaryElement.name === "🍲 鍋・煮込み") {
       profileDesc = "おでんや肉じゃが、カレー、シチューなどの「鍋・煮込み」を好んで作っています。素材の旨味がお出汁にじわっと染みた、心ほぐれる優しい料理に高い評価をつけています。";
@@ -405,7 +405,7 @@ function renderDashboardData() {
     } else if (primaryElement.name === "🍛 丼物・ご飯物") {
       profileDesc = "具材をご飯にのせる大満足の「丼物・ご飯物」や、香ばしいチャーハン、オムライスなどを多く作っています。カレーライスや一皿で大満足のご飯メニューに高評価をつけています。";
     }
-    
+
     // 上位3つの要素をゲージで表示
     const topElements = prefData.slice(0, 3);
     const gaugeRows = topElements.map(item => {
@@ -421,7 +421,7 @@ function renderDashboardData() {
         </div>
       `;
     }).join('');
-    
+
     if (profileContainer) {
       profileContainer.innerHTML = `
         <div class="profile-header">
@@ -436,20 +436,20 @@ function renderDashboardData() {
       `;
     }
   }
-  
+
   // --- AIレシピ提案の動的構築 ---
   let recTag = '本日のおすすめレシピ';
   let recDish = 'コク旨万能カレーライス';
   let recReason = '冷蔵庫にある余ったお野菜や調味料を加えて、栄養たっぷりのオリジナルカレーを作ってみませんか？カレーならどんな食材でも美味しくまとまります。';
   let recEmoji = '🍛';
-  
+
   // ユーザーのメイン構成要素を判定 (無ければデフォルトは丼物)
   const primaryPrefName = (prefData && prefData.length > 0) ? prefData[0].name : "🍛 丼物・ご飯物";
-  
+
   if (alerts.length > 0) {
     const target = alerts[0];
     recEmoji = INGREDIENT_EMOJI_MAP[target.category] || '🍳';
-    
+
     // 好み構成要素と期限食材カテゴリーのインテリジェントマッピング
     if (target.category === '肉類') {
       recTag = `期限間近の「${target.name}」を消費`;
@@ -530,7 +530,7 @@ function renderDashboardData() {
     const randomIng = state.ingredients[Math.floor(Math.random() * state.ingredients.length)];
     recTag = `${primaryPrefName}のおすすめメニュー`;
     recEmoji = primaryPrefName.substring(0, 2); // 絵文字を抽出
-    
+
     if (primaryPrefName === "🍲 鍋・煮込み") {
       recDish = `お出汁が染みる「${randomIng.name}」の特製ほっこり煮`;
       recReason = `冷蔵庫にある「${randomIng.name}」を使って、コトコト煮込んだ温かい煮物を作りましょう。中までじっくり味が染みて、明日も美味しく召し上がれます。`;
@@ -556,7 +556,7 @@ function renderDashboardData() {
     recReason = 'まずはスーパーでお好みの肉、じゃがいも、にんじん、玉ねぎを買ってきて冷蔵庫に登録しましょう。基本の美味しいおかずでアプリの使用をスタート。';
     recEmoji = '🥗';
   }
-  
+
   recCardContainer.innerHTML = `
     <div class="rec-header">
       <div>
@@ -570,12 +570,12 @@ function renderDashboardData() {
       この料理を作って記録する
     </button>
   `;
-  
+
   // レコメンドから「これを作る」ボタンタップ時
   document.getElementById('btn-rec-log-trigger').addEventListener('click', () => {
     openLogModal(recDish);
   });
-  
+
   // 買い物メモの描画を実行
   renderShoppingList();
 }
@@ -584,61 +584,61 @@ function renderDashboardData() {
 function renderFridge() {
   const container = document.getElementById('fridge-list-container');
   const emptyState = document.getElementById('fridge-empty-state');
-  
+
   if (state.ingredients.length === 0) {
     emptyState.classList.remove('hidden');
     container.innerHTML = '';
     return;
   }
-  
+
   emptyState.classList.add('hidden');
-  
+
   // 優先順位に基づきカテゴリ一覧を構成（旧カテゴリが残っている場合は互換性のために動的に末尾に追加）
   const predefinedCategories = ["肉類", "魚介類", "野菜・果物", "卵・乳製品", "練り物・豆腐", "主食・麺・パン", "調味料", "飲料・ドリンク", "お酒", "その他・缶詰など"];
   const activeCategories = Array.from(new Set(state.ingredients.map(ing => ing.category)));
   const categories = predefinedCategories.concat(activeCategories.filter(c => !predefinedCategories.includes(c)));
-  
+
   container.innerHTML = categories.map(cat => {
     const items = state.ingredients.filter(ing => ing.category === cat);
     if (items.length === 0) return '';
-    
+
     const rows = items.map(ing => {
       const days = getDaysRemaining(ing.expiryDate);
       const status = getExpiryStatus(days);
       const isZero = ing.quantity === 0;
       const rowClass = isZero ? 'ingredient-row out-of-stock-row' : 'ingredient-row';
-      
+
       let badgeText = '';
       if (days < 0) badgeText = `期限切れ (${Math.abs(days)}日経過)`;
       else if (days === 0) badgeText = '今日まで';
       else if (days === 1) badgeText = '明日まで';
       else badgeText = `あと${days}日`;
-      
+
       // 画像サムネイルか絵文字プレースホルダー
-      const thumbContent = ing.photo 
+      const thumbContent = ing.photo
         ? `<img src="${ing.photo}" alt="${ing.name}">`
         : `<span class="thumb-emoji">${INGREDIENT_EMOJI_MAP[cat] || "📦"}</span>`;
-      
-      const deleteButtonHtml = isZero 
+
+      const deleteButtonHtml = isZero
         ? `
           <div class="row-delete-container" style="display: flex; gap: 8px; padding-left: 78px; padding-bottom: 12px;">
             <button type="button" class="row-delete-btn" data-id="${ing.id}">削除する</button>
             <button type="button" class="row-add-memo-btn" data-id="${ing.id}" data-name="${ing.name}" data-unit="${ing.unit}">メモに追加</button>
           </div>
-        ` 
+        `
         : '';
-      
+
       return `
         <div class="${rowClass}" data-id="${ing.id}">
           <div class="ingredient-thumb status-${status}">
             ${thumbContent}
           </div>
-          
+
           <div class="ingredient-info">
             <div class="ingredient-name">${ing.name}</div>
             <span class="ingredient-expiry-label ${status}">${badgeText}</span>
           </div>
-          
+
           <div class="qty-controller">
             <button class="qty-btn minus" data-id="${ing.id}">−</button>
             <input type="text" class="qty-input" data-id="${ing.id}" value="${ing.quantity}">
@@ -649,7 +649,7 @@ function renderFridge() {
         ${deleteButtonHtml}
       `;
     }).join('');
-    
+
     return `
       <div class="category-block">
         <div class="category-title-bar">
@@ -662,7 +662,7 @@ function renderFridge() {
       </div>
     `;
   }).join('');
-  
+
   // ＋/ー ボタンのアクション設定 (伝播を遮断し、入力欄の数字も同期)
   document.querySelectorAll('.qty-btn.plus').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -676,7 +676,7 @@ function renderFridge() {
       }
     });
   });
-  
+
   document.querySelectorAll('.qty-btn.minus').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation(); // 行クリックイベントを遮断
@@ -707,7 +707,7 @@ function renderFridge() {
         const ing = state.ingredients[index];
         const rawVal = e.target.value;
         const val = parseJapaneseFloat(rawVal);
-        
+
         if (val !== null && val >= 0) {
           ing.quantity = parseFloat(val.toFixed(1));
         } else {
@@ -759,7 +759,7 @@ function renderFridge() {
       e.stopPropagation();
       const name = e.target.getAttribute('data-name');
       const unit = e.target.getAttribute('data-unit');
-      
+
       // 重複チェックして買い物リストに追加
       const exists = state.shoppingList.some(item => item.text === `${name} (${unit})`);
       if (!exists) {
@@ -770,13 +770,13 @@ function renderFridge() {
         });
         state.save();
       }
-      
+
       // 極上のマイクロインタラクション：ボタン文字を「追加しました」に変更して1秒後に再描画
       const originalText = e.target.textContent;
       e.target.textContent = '追加しました';
       e.target.style.backgroundColor = 'var(--secondary-light)';
       e.target.disabled = true;
-      
+
       setTimeout(() => {
         e.target.textContent = originalText;
         e.target.style.backgroundColor = 'white';
@@ -791,23 +791,23 @@ function renderFridge() {
 function renderLogs() {
   const container = document.getElementById('logs-list-container');
   const emptyState = document.getElementById('logs-empty-state');
-  
+
   if (state.dinnerLogs.length === 0) {
     emptyState.classList.remove('hidden');
     container.innerHTML = '';
     return;
   }
-  
+
   emptyState.classList.add('hidden');
-  
+
   container.innerHTML = state.dinnerLogs.map(log => {
     const dateFormatted = formatJapaneseDate(log.date);
-    
+
     // 写真カード
-    const photoTag = log.photo 
+    const photoTag = log.photo
       ? `<div class="log-card-photo"><img src="${log.photo}" alt="${log.name}"></div>`
       : '';
-      
+
     // 食事要素タグと食材タグの表示
     const compHtml = (log.components || []).map(comp => `<span class="log-tag" style="background-color:var(--secondary-light); color:var(--secondary);">${comp}</span>`).join('');
     const ingredientsArray = log.ingredientsUsed || log.usedIngredients || [];
@@ -822,15 +822,15 @@ function renderLogs() {
       return `<span class="log-tag">${label}</span>`;
     }).join('');
     const tags = compHtml + ingHtml;
-    
+
     // メモ要約
     const memoPreview = log.memo ? `<div class="log-card-memo-preview">${log.memo}</div>` : '';
-    
+
     const percentage = (parseFloat(log.rating || 5) / 5.0) * 100;
     const ratingVal = parseFloat(log.rating || 5).toFixed(1);
-    
+
     const servingsText = log.servings ? ` <span style="font-size: 0.75rem; color: var(--text-sub); font-weight: 500; margin-left: 4px;">(${log.servings})</span>` : '';
-    
+
     return `
       <div class="log-card" data-id="${log.id}">
         <div class="log-card-header">
@@ -843,19 +843,19 @@ function renderLogs() {
             <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary);">${ratingVal}</span>
           </div>
         </div>
-        
+
         ${photoTag}
-        
+
         <div class="log-card-title">${log.name}</div>
-        
+
         <div class="log-card-tags">
           ${tags}
         </div>
-        
+
         ${memoPreview}
-        
+
         <div class="log-card-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-          <span style="font-size: 0.8rem; color: var(--primary);">詳細・レシピを見る →</span>
+          <span style="font-size: 0.8rem; color: var(--primary);">詳細・レシピを見る</span>
           <button type="button" class="btn-share-log-timeline" data-id="${log.id}" style="padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; background-color: var(--primary-light); color: var(--primary); border: none; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 4px;">
             📲 タイムラインに共有
           </button>
@@ -863,13 +863,13 @@ function renderLogs() {
       </div>
     `;
   }).join('');
-  
+
   // 詳細ポップアップのイベントバインド
   document.querySelectorAll('.log-card').forEach(card => {
     card.addEventListener('click', (e) => {
       // 共有ボタンのクリック時は詳細を開かないように防ぐ
       if (e.target.closest('.btn-share-log-timeline')) return;
-      
+
       const id = card.getAttribute('data-id');
       const log = state.dinnerLogs.find(item => item.id === id);
       if (log) {
@@ -883,34 +883,34 @@ function renderLogs() {
     btn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation(); // 親要素のカードクリックイベントを伝播させない
-      
+
       const currentUser = sheetDB.getCurrentUser();
       if (!currentUser) {
         alert('タイムラインにレシピを共有するには、ログインが必要です！');
         return;
       }
-      
+
       const id = btn.getAttribute('data-id');
       const log = state.dinnerLogs.find(item => item.id === id);
       if (!log) return;
-      
+
       btn.disabled = true;
       const originalText = btn.innerHTML;
       btn.innerHTML = '📤 共有中...';
       btn.style.backgroundColor = 'var(--border-color)';
       btn.style.color = 'var(--text-sub)';
-      
+
       try {
         await sheetDB.postDinner(null, log);
-        
+
         // 極上のマイクロインタラクションフィードバック
         btn.innerHTML = '✅ 投稿しました！';
         btn.style.backgroundColor = '#E0FDF4';
         btn.style.color = '#10B981';
-        
+
         // タイムラインを再描画
         renderTimeline();
-        
+
         setTimeout(() => {
           btn.innerHTML = originalText;
           btn.style.backgroundColor = 'var(--primary-light)';
@@ -935,9 +935,9 @@ async function renderTimeline() {
   const container = document.getElementById('tl-feed-container');
   const emptyState = document.getElementById('tl-empty-state');
   const loginBanner = document.getElementById('tl-login-banner');
-  
+
   if (!window.sheetDB) return;
-  
+
   const user = sheetDB.getCurrentUser();
   if (!user) {
     loginBanner.style.display = 'block';
@@ -945,17 +945,17 @@ async function renderTimeline() {
     emptyState.classList.add('hidden');
     return;
   }
-  
+
   loginBanner.style.display = 'none';
-  
+
   try {
-    const posts = await sheetDB.getTimeline(); // 本来は getFollowingFeed(user.id) など
+    const posts = await sheetDB.getFollowingFeed(user.id);
     if (!posts || posts.length === 0) {
       emptyState.classList.remove('hidden');
       container.innerHTML = '';
       return;
     }
-    
+
     // エスケープ処理用の簡易ヘルパー
     const escapeString = (str) => {
       if (!str) return '';
@@ -969,10 +969,10 @@ async function renderTimeline() {
         let label = typeof ing === 'object' ? `${ing.name} ${ing.quantity || ''}${ing.unit || ''}` : ing;
         return `<span class="tl-post-ingredient-tag">${label}</span>`;
       }).join('');
-      
+
       const ratingWidth = (parseFloat(post.rating || 5) / 5) * 100;
       const photoHtml = post.photo ? `<img src="${post.photo}" class="tl-post-photo" alt="Photo">` : '';
-      
+
       return `
         <div class="tl-post-card">
           <div class="tl-post-header">
@@ -1001,7 +1001,7 @@ async function renderTimeline() {
         </div>
       `;
     }).join('');
-    
+
     // プロフィールモーダルを開くイベント
     container.querySelectorAll('.tl-post-avatar').forEach(avatar => {
       avatar.addEventListener('click', () => {
@@ -1017,7 +1017,7 @@ async function renderTimeline() {
         const memoDiv = document.getElementById(`memo-${postId}`);
         const post = posts.find(p => p.id === postId);
         if (!post || !memoDiv) return;
-        
+
         const isMd = btn.getAttribute('data-is-md') === 'true';
         if (isMd) {
           // プレーンテキストに戻す
@@ -1034,7 +1034,7 @@ async function renderTimeline() {
         }
       });
     });
-    
+
   } catch(e) {
     console.error("Timeline error:", e);
     container.innerHTML = `<p style="text-align:center;color:red;padding:20px;">読み込みエラーが発生しました</p>`;
@@ -1052,33 +1052,33 @@ window.deletePost = async function(postId) {
 async function renderMyPage() {
   const authArea = document.getElementById('mypage-auth-area');
   const profileArea = document.getElementById('mypage-profile-area');
-  
+
   if (!window.sheetDB) return;
   const user = sheetDB.getCurrentUser();
-  
+
   if (!user) {
     authArea.classList.remove('hidden');
     profileArea.classList.add('hidden');
     return;
   }
-  
+
   authArea.classList.add('hidden');
   profileArea.classList.remove('hidden');
-  
+
   // プロフィール情報反映
   document.getElementById('mypage-nickname').textContent = user.nickname || user.username;
   document.getElementById('mypage-username').textContent = '@' + user.username;
   document.getElementById('mypage-avatar').textContent = user.avatarEmoji || '🧑‍🍳';
-  
+
   // 入力欄への反映
   const usernameInput = document.getElementById('mypage-username-input');
   const nicknameInput = document.getElementById('mypage-nickname-input');
   const bioInput = document.getElementById('mypage-bio');
-  
+
   if (usernameInput) usernameInput.value = user.username || '';
   if (nicknameInput) nicknameInput.value = user.nickname || '';
   if (bioInput) bioInput.value = user.bio || '';
-  
+
   // アバター入力欄への反映と初期化
   const avatarInput = document.getElementById('mypage-avatar-input');
   if (avatarInput) {
@@ -1087,7 +1087,7 @@ async function renderMyPage() {
     const warningEl = document.getElementById('mypage-avatar-warning');
     if (warningEl) warningEl.style.display = 'none';
   }
-  
+
   // 統計取得 (非同期)
   try {
     const prof = await sheetDB.getUserProfile(user.id);
@@ -1110,18 +1110,18 @@ function renderAll() {
 // 買い物メモ（Shopping List）のレンダリング
 function renderShoppingList() {
   const container = document.getElementById('memo-shopping-list');
-  
+
   if (!container) return;
-  
+
   if (state.shoppingList.length === 0) {
     container.innerHTML = `<li style="font-size:0.8rem; text-align:center; color:var(--text-sub); font-style:italic; padding:12px 0; width:100%;">買うものは登録されていません</li>`;
     return;
   }
-  
+
   container.innerHTML = state.shoppingList.map(item => {
     const itemClass = item.checked ? 'shopping-item completed' : 'shopping-item';
     const checkIcon = item.checked ? '🟢' : '⚪️';
-    
+
     return `
       <li class="${itemClass}" data-id="${item.id}">
         <span class="shopping-check" data-id="${item.id}">${checkIcon}</span>
@@ -1130,7 +1130,7 @@ function renderShoppingList() {
       </li>
     `;
   }).join('');
-  
+
   // チェックボタンのイベント紐付け
   document.querySelectorAll('.shopping-check').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -1152,16 +1152,16 @@ function renderShoppingList() {
       if (e.target.closest('.shopping-check') || e.target.closest('.shopping-delete-btn')) {
         return;
       }
-      
+
       const id = itemRow.getAttribute('data-id');
-      
+
       // 他のすべての行の削除ボタン表示を閉じる
       document.querySelectorAll('.shopping-item').forEach(row => {
         if (row.getAttribute('data-id') !== id) {
           row.classList.remove('show-delete');
         }
       });
-      
+
       // 自行の削除ボタン表示状態を切り替える
       itemRow.classList.toggle('show-delete');
     });
@@ -1184,11 +1184,11 @@ document.querySelectorAll('#bottom-navbar .nav-item').forEach(button => {
   button.addEventListener('click', (e) => {
     const btn = e.currentTarget;
     const tabId = btn.getAttribute('data-tab');
-    
+
     // ナビボタンのアクティブクラス切り替え
     document.querySelectorAll('#bottom-navbar .nav-item').forEach(item => item.classList.remove('active'));
     btn.classList.add('active');
-    
+
     // コンテンツ画面のアクティブクラス切り替え
     document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
@@ -1231,7 +1231,7 @@ btnOpenAddIngredient.addEventListener('click', () => {
   editingIngredientId = null;
   document.getElementById('ingredient-modal-title').textContent = "新しい食材";
   ingDeleteSection.classList.add('hidden');
-  
+
   // フォーム初期化
   document.getElementById('form-ingredient').reset();
   document.getElementById('ing-expiry').value = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // デフォルトは3日後
@@ -1246,14 +1246,14 @@ function openIngredientModalForEdit(ing) {
   editingIngredientId = ing.id;
   document.getElementById('ingredient-modal-title').textContent = "食材の編集";
   ingDeleteSection.classList.remove('hidden');
-  
+
   // 各フォーム値の復元
   ingNameInput.value = ing.name;
   document.getElementById('ing-category').value = ing.category;
   document.getElementById('ing-qty').value = ing.quantity;
   document.getElementById('ing-unit').value = ing.unit;
   document.getElementById('ing-expiry').value = ing.expiryDate;
-  
+
   // 写真復元
   currentIngPhotoBase64 = ing.photo;
   if (ing.photo) {
@@ -1271,7 +1271,7 @@ function openIngredientModalForEdit(ing) {
   } else {
     ingPhotoPreview.innerHTML = `<div class="upload-icon">📸</div><div class="upload-text">写真を撮影・選択</div>`;
   }
-  
+
   btnSaveIngredient.disabled = false;
   openModal('modal-add-ingredient');
 }
@@ -1332,27 +1332,45 @@ ingPhotoInput.addEventListener('change', (e) => {
 });
 
 // 食材保存処理
-btnSaveIngredient.addEventListener('click', (e) => {
+btnSaveIngredient.addEventListener('click', async (e) => {
   e.preventDefault();
   const name = ingNameInput.value.trim();
-  const category = document.getElementById('ing-category').value;
-  
-  // 全角入力に対応した数量のFloat変換
-  const rawQty = document.getElementById('ing-qty').value;
-  const parsedQty = parseJapaneseFloat(rawQty);
-  const quantity = (parsedQty !== null && parsedQty >= 0) ? parseFloat(parsedQty.toFixed(1)) : 1.0;
-  
-  const unit = document.getElementById('ing-unit').value || "個";
-  const expiryDate = document.getElementById('ing-expiry').value;
-  
   if (name === '') return;
-  
-  if (editingIngredientId) {
-    // 編集・更新処理
-    const index = state.ingredients.findIndex(item => item.id === editingIngredientId);
-    if (index !== -1) {
-      state.ingredients[index] = {
-        id: editingIngredientId,
+
+  // ボタンの無効化とローディング表示
+  btnSaveIngredient.disabled = true;
+  const originalText = btnSaveIngredient.textContent;
+  btnSaveIngredient.textContent = '保存中...';
+
+  try {
+    const category = document.getElementById('ing-category').value;
+
+    // 全角入力に対応した数量のFloat変換
+    const rawQty = document.getElementById('ing-qty').value;
+    const parsedQty = parseJapaneseFloat(rawQty);
+    const quantity = (parsedQty !== null && parsedQty >= 0) ? parseFloat(parsedQty.toFixed(1)) : 1.0;
+
+    const unit = document.getElementById('ing-unit').value || "個";
+    const expiryDate = document.getElementById('ing-expiry').value;
+
+    if (editingIngredientId) {
+      // 編集・更新処理
+      const index = state.ingredients.findIndex(item => item.id === editingIngredientId);
+      if (index !== -1) {
+        state.ingredients[index] = {
+          id: editingIngredientId,
+          name,
+          category,
+          quantity,
+          unit,
+          expiryDate,
+          photo: currentIngPhotoBase64
+        };
+      }
+    } else {
+      // 新規追加処理
+      const newIng = {
+        id: generateUUID(),
         name,
         category,
         quantity,
@@ -1360,25 +1378,20 @@ btnSaveIngredient.addEventListener('click', (e) => {
         expiryDate,
         photo: currentIngPhotoBase64
       };
+      state.ingredients.push(newIng);
     }
+
+    state.save();
+    renderAll();
+    closeModal('modal-add-ingredient');
+  } catch (err) {
+    console.error("Save ingredient failed:", err);
+    alert("食材の保存に失敗しました。");
+  } finally {
     editingIngredientId = null;
-  } else {
-    // 新規追加処理
-    const newIng = {
-      id: generateUUID(),
-      name,
-      category,
-      quantity,
-      unit,
-      expiryDate,
-      photo: currentIngPhotoBase64
-    };
-    state.ingredients.push(newIng);
+    btnSaveIngredient.disabled = false;
+    btnSaveIngredient.textContent = originalText;
   }
-  
-  state.save();
-  renderAll();
-  closeModal('modal-add-ingredient');
 });
 
 // B. 晩ごはん記録モーダル
@@ -1417,28 +1430,28 @@ function updateSliderRatingUI(rating) {
 
 function openLogModal(defaultDishName = '', existingLog = null) {
   document.getElementById('form-log').reset();
-  
+
   const titleEl = document.getElementById('log-modal-title');
   const deleteSecEl = document.getElementById('log-delete-section');
-  
+
   if (existingLog) {
     editingLogId = existingLog.id;
     if (titleEl) titleEl.textContent = "記録の編集";
     btnSaveLog.textContent = "保存する";
     if (deleteSecEl) deleteSecEl.classList.remove('hidden');
-    
+
     logNameInput.value = existingLog.name;
     document.getElementById('log-date').value = existingLog.date;
-    
+
     // 人数の復元
     document.getElementById('log-servings').value = existingLog.servings || '2人前';
-    
+
     currentRating = parseFloat(existingLog.rating || 5.0);
     if (ratingSlider) {
       ratingSlider.value = currentRating;
     }
     updateSliderRatingUI(currentRating);
-    
+
     currentLogPhotoBase64 = existingLog.photo;
     if (existingLog.photo) {
       logPhotoPreview.innerHTML = `
@@ -1455,11 +1468,11 @@ function openLogModal(defaultDishName = '', existingLog = null) {
     } else {
       logPhotoPreview.innerHTML = `<div class="upload-icon">🥘</div><div class="upload-text">料理の写真を撮影・追加する</div>`;
     }
-    
+
     document.getElementById('log-memo').value = existingLog.memo || '';
     document.getElementById('log-memo-preview').innerHTML = '<span class="preview-placeholder">何も書かれていません</span>';
     switchMemoMode('edit');
-    
+
     // チェックリストの復元
     buildFridgeChecklist(existingLog.ingredientsUsed || existingLog.usedIngredients || []);
   } else {
@@ -1467,13 +1480,13 @@ function openLogModal(defaultDishName = '', existingLog = null) {
     if (titleEl) titleEl.textContent = "晩ごはんを記録";
     btnSaveLog.textContent = "記録する";
     if (deleteSecEl) deleteSecEl.classList.add('hidden');
-    
+
     logNameInput.value = defaultDishName;
     document.getElementById('log-date').value = new Date().toISOString().split('T')[0]; // デフォルト今日
-    
+
     // 人数の初期化
     document.getElementById('log-servings').value = '2人前';
-    
+
     currentRating = 5.0;
     if (ratingSlider) {
       ratingSlider.value = 5.0;
@@ -1481,14 +1494,14 @@ function openLogModal(defaultDishName = '', existingLog = null) {
     updateSliderRatingUI(5.0);
     currentLogPhotoBase64 = null;
     logPhotoPreview.innerHTML = `<div class="upload-icon">🥘</div><div class="upload-text">料理の写真を撮影・選択</div>`;
-    
+
     document.getElementById('log-memo').value = '';
     document.getElementById('log-memo-preview').innerHTML = '<span class="preview-placeholder">何も書かれていません</span>';
     switchMemoMode('edit');
-    
+
     buildFridgeChecklist([]);
   }
-  
+
   // タイムライン共有チェックボックスの初期表示制御
   const shareCheckbox = document.getElementById('log-share-timeline');
   const shareDesc = document.getElementById('log-share-timeline-desc');
@@ -1548,19 +1561,19 @@ function buildFridgeChecklist(checkedNames = []) {
     logFridgeChecklist.innerHTML = `<p class="checklist-empty-note">冷蔵庫に食材がありません</p>`;
     return;
   }
-  
+
   logFridgeChecklist.innerHTML = state.ingredients.map(ing => {
     let isChecked = false;
     let usedQty = ing.quantity; // デフォルトは全量
     let isPartial = false;      // デフォルトは全量
-    
+
     const foundUsed = checkedNames.find(item => {
       if (typeof item === 'object' && item !== null) {
         return item.name === ing.name;
       }
       return item === ing.name;
     });
-    
+
     if (foundUsed) {
       isChecked = true;
       if (typeof foundUsed === 'object' && foundUsed !== null) {
@@ -1568,24 +1581,24 @@ function buildFridgeChecklist(checkedNames = []) {
         isPartial = usedQty < ing.quantity;
       }
     }
-    
+
     const checkIcon = isChecked ? '🟢' : '⚪️';
     const rowClass = isChecked ? 'checklist-row checked' : 'checklist-row';
     const segmentFullClass = isPartial ? 'deduct-segment-btn' : 'deduct-segment-btn active';
     const segmentPartialClass = isPartial ? 'deduct-segment-btn active' : 'deduct-segment-btn';
     const stepperClass = isPartial ? 'stepper-control' : 'stepper-control hidden';
-    
+
     return `
       <div class="${rowClass}" id="checkrow-${ing.id}">
         <span class="check-btn" data-id="${ing.id}">${checkIcon}</span>
         <span class="check-label">${INGREDIENT_EMOJI_MAP[ing.category] || "📦"} ${ing.name}</span>
-        
+
         <div class="checklist-controls">
           <div class="deduct-segmented">
             <button type="button" class="${segmentFullClass}" data-id="${ing.id}" data-mode="full">使い切る</button>
             <button type="button" class="${segmentPartialClass}" data-id="${ing.id}" data-mode="partial">一部</button>
           </div>
-          
+
           <div class="${stepperClass}" id="stepper-${ing.id}">
             <button type="button" class="stepper-btn min" data-id="${ing.id}">−</button>
             <input type="text" class="stepper-input" id="stepval-${ing.id}" data-id="${ing.id}" value="${usedQty}" style="width: 50px; text-align: center; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; font-weight: 700; color: var(--text-main); padding: 2px 0;">
@@ -1596,14 +1609,14 @@ function buildFridgeChecklist(checkedNames = []) {
       </div>
     `;
   }).join('');
-  
+
   // チェックボックスのアクション
   document.querySelectorAll('.checklist-row .check-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const row = e.target.closest('.checklist-row');
       const id = e.target.getAttribute('data-id');
       const ing = state.ingredients.find(item => item.id === id);
-      
+
       if (row.classList.contains('checked')) {
         row.classList.remove('checked');
         e.target.textContent = '⚪️';
@@ -1614,7 +1627,7 @@ function buildFridgeChecklist(checkedNames = []) {
       }
     });
   });
-  
+
   // 全量・一部 切り替えアクション
   document.querySelectorAll('.deduct-segment-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -1622,13 +1635,13 @@ function buildFridgeChecklist(checkedNames = []) {
       const mode = e.target.getAttribute('data-mode');
       const ing = state.ingredients.find(item => item.id === id);
       const row = e.target.closest('.checklist-row');
-      
+
       row.querySelectorAll('.deduct-segment-btn').forEach(b => b.classList.remove('active'));
       e.target.classList.add('active');
-      
+
       const stepper = document.getElementById(`stepper-${id}`);
       const valInput = document.getElementById(`stepval-${id}`);
-      
+
       if (mode === 'full') {
         stepper.classList.add('hidden');
         valInput.value = ing.quantity;
@@ -1638,7 +1651,7 @@ function buildFridgeChecklist(checkedNames = []) {
       }
     });
   });
-  
+
   // ステッパーアクション
   document.querySelectorAll('.stepper-btn.plus').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -1646,7 +1659,7 @@ function buildFridgeChecklist(checkedNames = []) {
       const ing = state.ingredients.find(item => item.id === id);
       const valInput = document.getElementById(`stepval-${id}`);
       let currentVal = parseJapaneseFloat(valInput.value) || 0;
-      
+
       if (currentVal < ing.quantity) {
         currentVal = parseFloat((currentVal + 0.1).toFixed(1));
         if (currentVal > ing.quantity) currentVal = ing.quantity;
@@ -1654,13 +1667,13 @@ function buildFridgeChecklist(checkedNames = []) {
       }
     });
   });
-  
+
   document.querySelectorAll('.stepper-btn.min').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const id = e.target.getAttribute('data-id');
       const valInput = document.getElementById(`stepval-${id}`);
       let currentVal = parseJapaneseFloat(valInput.value) || 0;
-      
+
       if (currentVal > 0.1) {
         currentVal = parseFloat((currentVal - 0.1).toFixed(1));
         valInput.value = currentVal;
@@ -1674,10 +1687,10 @@ function buildFridgeChecklist(checkedNames = []) {
       const id = e.target.getAttribute('data-id');
       const ing = state.ingredients.find(item => item.id === id);
       if (!ing) return;
-      
+
       const rawVal = e.target.value;
       const val = parseJapaneseFloat(rawVal);
-      
+
       if (val !== null && val >= 0.1) {
         let finalVal = parseFloat(val.toFixed(1));
         if (finalVal > ing.quantity) {
@@ -1688,7 +1701,7 @@ function buildFridgeChecklist(checkedNames = []) {
         e.target.value = 0.1;
       }
     };
-    
+
     input.addEventListener('blur', handleValChange);
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -1713,14 +1726,14 @@ memoTabControl.addEventListener('click', (e) => {
 function switchMemoMode(mode) {
   memoTabControl.querySelectorAll('.segment-item').forEach(b => b.classList.remove('active'));
   memoTabControl.querySelector(`[data-mode="${mode}"]`).classList.add('active');
-  
+
   if (mode === 'edit') {
     memoTextarea.classList.remove('hidden');
     memoPreviewArea.classList.add('hidden');
   } else {
     memoTextarea.classList.add('hidden');
     memoPreviewArea.classList.remove('hidden');
-    
+
     // Markdownの描画
     const rawText = memoTextarea.value;
     memoPreviewArea.innerHTML = `<div class="markdown-content">${renderMarkdown(rawText)}</div>`;
@@ -1728,49 +1741,69 @@ function switchMemoMode(mode) {
 }
 
 // 晩ごはん記録保存処理（スマート自動減算連動）
-btnSaveLog.addEventListener('click', (e) => {
+btnSaveLog.addEventListener('click', async (e) => {
   e.preventDefault();
   const name = logNameInput.value.trim();
   const date = document.getElementById('log-date').value;
   const servings = document.getElementById('log-servings').value.trim() || '2人前';
   const memo = memoTextarea.value;
-  
+
   if (name === '') return;
-  
-  // 使用食材と減算数量の計算
-  const usedIngredients = [];
-  const deductions = []; // { id, quantity }
-  
-  document.querySelectorAll('.checklist-row.checked').forEach(row => {
-    const id = row.querySelector('.check-btn').getAttribute('data-id');
-    const ing = state.ingredients.find(item => item.id === id);
-    if (ing) {
-      const deductVal = parseJapaneseFloat(document.getElementById(`stepval-${id}`).value) || ing.quantity;
-      
-      usedIngredients.push({
-        name: ing.name,
-        quantity: deductVal,
-        unit: ing.unit
-      });
-      
-      deductions.push({ id, deductVal });
-    }
-  });
-  
-  const ingNamesOnly = usedIngredients.map(item => item.name);
-  const components = extractMealComponents(name, ingNamesOnly, memo);
 
-  // 共有用のログを事前に特定する
-  const targetSavedLog = editingLogId 
-    ? state.dinnerLogs.find(item => item.id === editingLogId)
-    : null;
+  // ボタンの無効化とローディング表示
+  btnSaveLog.disabled = true;
+  const originalText = btnSaveLog.textContent;
+  btnSaveLog.textContent = '保存中...';
 
-  if (editingLogId) {
-    // 編集・更新処理
-    const index = state.dinnerLogs.findIndex(item => item.id === editingLogId);
-    if (index !== -1) {
-      state.dinnerLogs[index] = {
-        ...state.dinnerLogs[index],
+  try {
+    // 使用食材と減算数量の計算
+    const usedIngredients = [];
+    const deductions = []; // { id, quantity }
+
+    document.querySelectorAll('.checklist-row.checked').forEach(row => {
+      const id = row.querySelector('.check-btn').getAttribute('data-id');
+      const ing = state.ingredients.find(item => item.id === id);
+      if (ing) {
+        const deductVal = parseJapaneseFloat(document.getElementById(`stepval-${id}`).value) || ing.quantity;
+
+        usedIngredients.push({
+          name: ing.name,
+          quantity: deductVal,
+          unit: ing.unit
+        });
+
+        deductions.push({ id, deductVal });
+      }
+    });
+
+    const ingNamesOnly = usedIngredients.map(item => item.name);
+    const components = extractMealComponents(name, ingNamesOnly, memo);
+
+    // 共有用のログを事前に特定する
+    const targetSavedLog = editingLogId
+      ? state.dinnerLogs.find(item => item.id === editingLogId)
+      : null;
+
+    if (editingLogId) {
+      // 編集・更新処理
+      const index = state.dinnerLogs.findIndex(item => item.id === editingLogId);
+      if (index !== -1) {
+        state.dinnerLogs[index] = {
+          ...state.dinnerLogs[index],
+          name,
+          date,
+          memo,
+          rating: currentRating,
+          servings: servings,
+          ingredientsUsed: usedIngredients,
+          components: components,
+          photo: currentLogPhotoBase64
+        };
+      }
+    } else {
+      // 新規追加処理
+      const newLog = {
+        id: generateUUID(),
         name,
         date,
         memo,
@@ -1780,64 +1813,57 @@ btnSaveLog.addEventListener('click', (e) => {
         components: components,
         photo: currentLogPhotoBase64
       };
+
+      // 在庫の自動減算ロジック適用 (新規記録時のみ)
+      deductions.forEach(d => {
+        const index = state.ingredients.findIndex(item => item.id === d.id);
+        if (index !== -1) {
+          const ing = state.ingredients[index];
+          ing.quantity = parseFloat((ing.quantity - d.deductVal).toFixed(1));
+          if (ing.quantity < 0) {
+            ing.quantity = 0;
+          }
+        }
+      });
+
+      state.dinnerLogs.unshift(newLog);
     }
-  } else {
-    // 新規追加処理
-    const newLog = {
-      id: generateUUID(),
-      name,
-      date,
-      memo,
-      rating: currentRating,
-      servings: servings,
-      ingredientsUsed: usedIngredients,
-      components: components,
-      photo: currentLogPhotoBase64
-    };
-    
-    // 在庫の自動減算ロジック適用 (新規記録時のみ)
-    deductions.forEach(d => {
-      const index = state.ingredients.findIndex(item => item.id === d.id);
-      if (index !== -1) {
-        const ing = state.ingredients[index];
-        ing.quantity = parseFloat((ing.quantity - d.deductVal).toFixed(1));
-        if (ing.quantity < 0) {
-          ing.quantity = 0;
+
+    state.save();
+
+    // タイムライン共有スイッチがONかつログイン済みの場合、非同期でタイムラインにも自動投稿する
+    const shareCheckbox = document.getElementById('log-share-timeline');
+    if (shareCheckbox && shareCheckbox.checked) {
+      const currentUser = sheetDB.getCurrentUser();
+      if (currentUser) {
+        // 編集時は事前に取得した対象（編集後の新しいデータが入ったもの）、新規時はunshiftした最新を使用
+        const logToShare = targetSavedLog
+          ? state.dinnerLogs.find(item => item.id === targetSavedLog.id)
+          : state.dinnerLogs[0];
+
+        if (logToShare) {
+          try {
+            await sheetDB.postDinner(null, logToShare);
+            console.log("Automatically shared to timeline.");
+            renderTimeline();
+          } catch (err) {
+            console.error("Auto timeline share failed:", err);
+          }
         }
       }
-    });
-    
-    state.dinnerLogs.unshift(newLog);
-  }
-  
-  state.save();
-
-  // タイムライン共有スイッチがONかつログイン済みの場合、非同期でタイムラインにも自動投稿する
-  const shareCheckbox = document.getElementById('log-share-timeline');
-  if (shareCheckbox && shareCheckbox.checked) {
-    const currentUser = sheetDB.getCurrentUser();
-    if (currentUser) {
-      // 編集時は事前に取得した対象（編集後の新しいデータが入ったもの）、新規時はunshiftした最新を使用
-      const logToShare = targetSavedLog 
-        ? state.dinnerLogs.find(item => item.id === targetSavedLog.id) 
-        : state.dinnerLogs[0];
-      
-      if (logToShare) {
-        sheetDB.postDinner(null, logToShare).then(() => {
-          console.log("Automatically shared to timeline.");
-          renderTimeline();
-        }).catch(err => {
-          console.error("Auto timeline share failed:", err);
-        });
-      }
     }
+
+    renderAll();
+    closeModal('modal-add-log');
+  } catch (err) {
+    console.error("Save log failed:", err);
+    alert("晩ごはんの保存に失敗しました。");
+  } finally {
+    // 最後に editingLogId を安全にクリアし、ボタンを有効化
+    editingLogId = null;
+    btnSaveLog.disabled = false;
+    btnSaveLog.textContent = originalText;
   }
-
-  // 最後に editingLogId を安全にクリアする
-  editingLogId = null;
-
-  renderAll();
-  closeModal('modal-add-log');
 });
 
 // C. 晩ごはん詳細ポップアップモーダル
@@ -1853,13 +1879,13 @@ function openLogDetailModal(log) {
   activeDetailLog = log; // 現在詳細表示中のログを保持
   detailTitle.textContent = log.name;
   detailDate.textContent = formatJapaneseDate(log.date);
-  
+
   // 人数表示の更新
   const servingsEl = document.getElementById('detail-servings');
   if (servingsEl) {
     servingsEl.textContent = log.servings || '2人前';
   }
-  
+
   // 星評価 (小数点対応)
   const percentage = (parseFloat(log.rating || 5) / 5.0) * 100;
   detailStars.innerHTML = `
@@ -1870,7 +1896,7 @@ function openLogDetailModal(log) {
   if (starsVal) {
     starsVal.textContent = parseFloat(log.rating || 5).toFixed(1);
   }
-  
+
   // 写真
   if (log.photo) {
     detailPhotoWrapper.innerHTML = `<img src="${log.photo}" alt="${log.name}">`;
@@ -1879,7 +1905,7 @@ function openLogDetailModal(log) {
     detailPhotoWrapper.innerHTML = '';
     detailPhotoWrapper.classList.add('hidden');
   }
-  
+
   // 食材タグ
   const ingredientsArray = log.ingredientsUsed || log.usedIngredients || [];
   if (ingredientsArray.length > 0) {
@@ -1900,10 +1926,10 @@ function openLogDetailModal(log) {
     detailTags.innerHTML = '';
     detailTags.parentElement.classList.add('hidden');
   }
-  
+
   // マークダウンメモレンダリング
   detailMemoRendered.innerHTML = renderMarkdown(log.memo);
-  
+
   openModal('modal-log-detail');
 }
 
@@ -1958,7 +1984,7 @@ let searchableUsers = [];
 if (btnOpenSearch) {
   btnOpenSearch.addEventListener('click', async () => {
     openModal('modal-user-search');
-    
+
     // 初期クリア
     if (userSearchInput) userSearchInput.value = '';
     if (btnClearSearch) btnClearSearch.classList.add('hidden');
@@ -1970,10 +1996,10 @@ if (btnOpenSearch) {
       // 全ユーザーをロード
       const allUsers = await sheetDB.getAllUsers();
       const currentUser = sheetDB.getCurrentUser();
-      
+
       // 自分以外のユーザーを検索対象にする
       searchableUsers = allUsers.filter(u => !currentUser || u.id !== currentUser.id);
-      
+
       // 初期状態：全員を表示
       renderSearchResults(searchableUsers);
     } catch (e) {
@@ -1995,11 +2021,11 @@ if (btnCloseSearch) {
 if (userSearchInput) {
   userSearchInput.addEventListener('input', (e) => {
     const query = e.target.value.trim().toLowerCase();
-    
+
     if (query) {
       if (btnClearSearch) btnClearSearch.classList.remove('hidden');
-      
-      const filtered = searchableUsers.filter(u => 
+
+      const filtered = searchableUsers.filter(u =>
         (u.username || '').toLowerCase().includes(query) ||
         (u.nickname || '').toLowerCase().includes(query)
       );
@@ -2023,12 +2049,12 @@ if (btnClearSearch) {
 // 検索結果を描画する関数
 function renderSearchResults(users) {
   if (!userSearchResults) return;
-  
+
   if (users.length === 0) {
     userSearchResults.innerHTML = '<p style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 32px 0;">該当するユーザーは見つかりません</p>';
     return;
   }
-  
+
   userSearchResults.innerHTML = users.map(u => {
     const emoji = u.avatarEmoji || '🧑‍🍳';
     const dispName = u.nickname || u.username;
@@ -2045,7 +2071,7 @@ function renderSearchResults(users) {
       </div>
     `;
   }).join('');
-  
+
   // イベントバインド
   userSearchResults.querySelectorAll('.search-user-card').forEach(card => {
     card.addEventListener('click', (e) => {
@@ -2056,7 +2082,7 @@ function renderSearchResults(users) {
       }
     });
   });
-  
+
   userSearchResults.querySelectorAll('.search-view-profile-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation(); // 親カードのクリックイベントを発火させない
@@ -2097,39 +2123,39 @@ if (btnAddShopping) {
 }
 
 /**
- * ログイン・新規登録時にクラウドからデータを取得し、ローカルとマージして同期する
+ * ログイン・新規登録時、またはリロード（起動）時にクラウドからデータを取得し、ローカルとマージして同期する
  */
-async function syncOnLogin(userId) {
+async function syncOnLogin(userId, isReload = false) {
   if (!window.sheetDB || !sheetDB.isLive() || !userId) return;
 
   try {
     // 1. クラウド側のバックアップデータを取得
     const cloud = await sheetDB.getUserBackupData(userId);
-    
-    // 2. ゲスト用データの存在確認
-    const guestIng = localStorage.getItem('ingredients_guest');
-    const guestLogs = localStorage.getItem('dinnerLogs_guest');
-    const guestShop = localStorage.getItem('shoppingList_guest');
-    
-    let hasGuestData = false;
-    try {
-      if (guestIng && JSON.parse(guestIng).length > 0) hasGuestData = true;
-      if (guestLogs && JSON.parse(guestLogs).length > 0) hasGuestData = true;
-      if (guestShop && JSON.parse(guestShop).length > 0) hasGuestData = true;
-    } catch(e) {}
-    
-    // データの引き継ぎ可否を確認
+
     let shouldMigrate = false;
-    if (hasGuestData) {
-      shouldMigrate = confirm('未ログイン時に登録した冷蔵庫や夕食履歴のデータが残っています。\nこれを新しくログインするアカウントに引き継ぎ（統合）しますか？\n\n・「OK」を選ぶと、現在のデータをアカウントに統合します。\n・「キャンセル」を選ぶと、この端末のデータは消去され、アカウントにすでに保存されているデータのみが表示されます。');
+
+    // リロード時（起動時の自動同期）以外のみゲストデータの引き継ぎチェックと確認を行う
+    if (!isReload) {
+      const guestIng = localStorage.getItem('ingredients_guest');
+      const guestLogs = localStorage.getItem('dinnerLogs_guest');
+      const guestShop = localStorage.getItem('shoppingList_guest');
+
+      let hasGuestData = false;
+      try {
+        if (guestIng && JSON.parse(guestIng).length > 0) hasGuestData = true;
+        if (guestLogs && JSON.parse(guestLogs).length > 0) hasGuestData = true;
+        if (guestShop && JSON.parse(guestShop).length > 0) hasGuestData = true;
+      } catch(e) {}
+
+      if (hasGuestData) {
+        shouldMigrate = confirm('未ログイン時に登録した冷蔵庫や夕食履歴のデータが残っています。\nこれを新しくログインするアカウントに引き継ぎ（統合）しますか？\n\n・「OK」を選ぶと、現在のデータをアカウントに統合します。\n・「キャンセル」を選ぶと、この端末のデータは消去され、アカウントにすでに保存されているデータのみが表示されます。');
+      }
     }
-    
+
     // 3. スマートマージ処理
     // ── 食材 (Ingredients) ──
-    let mergedIngredients = [];
-    if (shouldMigrate) {
-      mergedIngredients = [...state.ingredients];
-    }
+    // リロード時、または新規ログイン時に移行を選択した場合は、現在のstateデータ（リロード時は既にstateに読み込み済み）から開始する。
+    let mergedIngredients = (isReload || shouldMigrate) ? [...state.ingredients] : [];
     if (cloud.ingredients && cloud.ingredients.length > 0) {
       cloud.ingredients.forEach(cloudItem => {
         const localIdx = mergedIngredients.findIndex(li => li.id === cloudItem.id);
@@ -2143,10 +2169,7 @@ async function syncOnLogin(userId) {
     state.ingredients = mergedIngredients;
 
     // ── 夕食履歴 (dinnerLogs) ──
-    let mergedLogs = [];
-    if (shouldMigrate) {
-      mergedLogs = [...state.dinnerLogs];
-    }
+    let mergedLogs = (isReload || shouldMigrate) ? [...state.dinnerLogs] : [];
     if (cloud.logs && cloud.logs.length > 0) {
       cloud.logs.forEach(cloudItem => {
         const localIdx = mergedLogs.findIndex(ll => ll.id === cloudItem.id);
@@ -2161,10 +2184,7 @@ async function syncOnLogin(userId) {
     state.dinnerLogs = mergedLogs;
 
     // ── 買い物メモ (shoppingList) ──
-    let mergedShop = [];
-    if (shouldMigrate) {
-      mergedShop = [...state.shoppingList];
-    }
+    let mergedShop = (isReload || shouldMigrate) ? [...state.shoppingList] : [];
     if (cloud.shoppingList && cloud.shoppingList.length > 0) {
       cloud.shoppingList.forEach(cloudItem => {
         const localIdx = mergedShop.findIndex(ls => ls.id === cloudItem.id);
@@ -2177,20 +2197,22 @@ async function syncOnLogin(userId) {
     }
     state.shoppingList = mergedShop;
 
-    // 4. マージ（またはクラウドロード）したデータをローカルに保存
+    // 4. マージしたデータをローカルに保存
     state.save();
-    
-    // ゲスト用データのクリーンアップ（統合または消去が完了したため）
-    localStorage.removeItem('ingredients_guest');
-    localStorage.removeItem('dinnerLogs_guest');
-    localStorage.removeItem('shoppingList_guest');
-    
+
+    // 新規ログインで移行完了、または移行不要と判断されたときのみゲストデータをクリーンアップ
+    if (!isReload) {
+      localStorage.removeItem('ingredients_guest');
+      localStorage.removeItem('dinnerLogs_guest');
+      localStorage.removeItem('shoppingList_guest');
+    }
+
     // 5. マージしたデータを再びクラウドに押し上げて完全に同期
     await sheetDB.syncUserData(userId, state.ingredients, state.dinnerLogs, state.shoppingList);
-    
-    console.log("Login sync and merge completed successfully. Migrated:", shouldMigrate);
+
+    console.log("Login/Reload sync and merge completed successfully. Reload:", isReload, "Migrated:", shouldMigrate);
   } catch (error) {
-    console.error("Login sync failed:", error);
+    console.error("Login/Reload sync failed:", error);
   }
 }
 
@@ -2218,16 +2240,24 @@ document.getElementById('form-register')?.addEventListener('submit', async (e) =
   const pass = document.getElementById('register-password').value;
   const passConf = document.getElementById('register-password-confirm').value;
   const err = document.getElementById('register-error-msg');
-  
+
   if (pass !== passConf) {
     err.textContent = 'パスワードが一致しません';
     err.classList.remove('hidden');
     return;
   }
-  
+
+  // 送信ボタンの無効化とローディング表示
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalText = submitBtn ? submitBtn.textContent : 'アカウント作成';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = '作成中...';
+  }
+
   try {
     const user = await sheetDB.register(username, pass, nickname);
-    
+
     // クラウド側と同期・マージを行う
     await syncOnLogin(user.id);
 
@@ -2235,12 +2265,17 @@ document.getElementById('form-register')?.addEventListener('submit', async (e) =
     e.target.reset();
     err.classList.add('hidden');
     renderAll();
-    
+
     // マイページタブへ移動
     document.querySelector('[data-tab="tab-mypage"]').click();
   } catch (error) {
     err.textContent = error.message;
     err.classList.remove('hidden');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
   }
 });
 
@@ -2250,10 +2285,18 @@ document.getElementById('form-login')?.addEventListener('submit', async (e) => {
   const username = document.getElementById('login-username').value.trim();
   const pass = document.getElementById('login-password').value;
   const err = document.getElementById('login-error-msg');
-  
+
+  // 送信ボタンの無効化とローディング表示
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalText = submitBtn ? submitBtn.textContent : 'ログイン';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'ログイン中...';
+  }
+
   try {
     const user = await sheetDB.login(username, pass);
-    
+
     // クラウド側と同期・マージを行う
     await syncOnLogin(user.id);
 
@@ -2265,6 +2308,11 @@ document.getElementById('form-login')?.addEventListener('submit', async (e) => {
   } catch (error) {
     err.textContent = error.message;
     err.classList.remove('hidden');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
   }
 });
 
@@ -2286,12 +2334,12 @@ document.getElementById('btn-save-profile')?.addEventListener('click', async () 
   const nicknameInput = document.getElementById('mypage-nickname-input');
   const bioInput = document.getElementById('mypage-bio');
   const avatarInput = document.getElementById('mypage-avatar-input');
-  
+
   const username = usernameInput ? usernameInput.value.trim() : '';
   const nickname = nicknameInput ? nicknameInput.value.trim() : '';
   const bio = bioInput ? bioInput.value.trim() : '';
   let avatarEmoji = avatarInput ? avatarInput.value : '🧑‍🍳';
-  
+
   if (!username) {
     alert('ユーザーネームを入力してください');
     return;
@@ -2354,14 +2402,14 @@ document.getElementById('mypage-avatar-input')?.addEventListener('input', (e) =>
   const val = input.value;
   const warningEl = document.getElementById('mypage-avatar-warning');
   const previewEl = document.getElementById('mypage-avatar');
-  
+
   if (!val) {
     if (warningEl) warningEl.style.display = 'none';
     input.style.borderColor = '';
     if (previewEl) previewEl.textContent = '🧑‍🍳';
     return;
   }
-  
+
   // 文字数（書記素）の判定
   let charCount = 0;
   let firstChar = '';
@@ -2375,7 +2423,7 @@ document.getElementById('mypage-avatar-input')?.addEventListener('input', (e) =>
     charCount = points.length;
     if (charCount > 0) firstChar = points[0];
   }
-  
+
   if (charCount > 1) {
     if (warningEl) warningEl.style.display = 'block';
     input.style.borderColor = '#ff3b30';
@@ -2391,7 +2439,7 @@ document.getElementById('mypage-avatar-input')?.addEventListener('blur', (e) => 
   const input = e.target;
   const val = input.value;
   if (!val) return;
-  
+
   let firstChar = val;
   if (typeof Intl !== 'undefined' && Intl.Segmenter) {
     const segmenter = new Intl.Segmenter('ja', { granularity: 'grapheme' });
@@ -2401,7 +2449,7 @@ document.getElementById('mypage-avatar-input')?.addEventListener('blur', (e) => 
     const points = Array.from(val);
     if (points.length > 0) firstChar = points[0];
   }
-  
+
   input.value = firstChar;
   input.style.borderColor = '';
   const warningEl = document.getElementById('mypage-avatar-warning');
@@ -2419,29 +2467,29 @@ async function openUserProfileModal(userId) {
     alert('プロフィールを見るにはログインしてください');
     return;
   }
-  
+
   if (userId === user.id) {
     // 自分の場合はマイページへ飛ばす
     document.querySelector('[data-tab="tab-mypage"]').click();
     return;
   }
-  
+
   try {
     const prof = await sheetDB.getUserProfile(userId);
     const targetUser = prof.user;
-    
+
     document.getElementById('user-profile-avatar').textContent = targetUser.avatarEmoji || '🧑‍🍳';
     document.getElementById('user-profile-nickname').textContent = targetUser.nickname || targetUser.username;
     document.getElementById('user-profile-username').textContent = '@' + targetUser.username;
     document.getElementById('user-profile-bio').textContent = targetUser.bio || '自己紹介はありません';
-    
+
     document.getElementById('user-profile-following').textContent = prof.followingCount || 0;
     document.getElementById('user-profile-followers').textContent = prof.followersCount || 0;
-    
+
     // フォローボタン状態
     const btnFollow = document.getElementById('btn-follow-toggle');
     const isFollowing = await sheetDB.isFollowing(user.id, userId);
-    
+
     btnFollow.setAttribute('data-userid', userId);
     if (isFollowing) {
       btnFollow.textContent = 'フォロー中';
@@ -2450,7 +2498,7 @@ async function openUserProfileModal(userId) {
       btnFollow.textContent = 'フォローする';
       btnFollow.classList.remove('following');
     }
-    
+
     openModal('modal-user-profile');
   } catch(e) {
     alert('プロフィールを取得できませんでした');
@@ -2463,7 +2511,7 @@ document.getElementById('btn-follow-toggle')?.addEventListener('click', async (e
   const targetId = btn.getAttribute('data-userid');
   const user = sheetDB.getCurrentUser();
   if (!user || !targetId) return;
-  
+
   const isFollowing = btn.classList.contains('following');
   btn.disabled = true;
   try {
@@ -2532,9 +2580,9 @@ function initPasswordToggles() {
     button.addEventListener('pointerdown', (e) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       e.preventDefault();
-      
+
       isHeld = false;
-      
+
       // すでにタイマーがあればクリア
       if (hideTimeout) {
         clearTimeout(hideTimeout);
@@ -2607,7 +2655,8 @@ initPasswordToggles();
 // ログイン中の場合は起動時にバックグラウンドで最新データを同期マージする
 const currentUser = sheetDB.getCurrentUser();
 if (currentUser) {
-  syncOnLogin(currentUser.id).then(() => {
+  // リロード起動時の自動同期のため第二引数に true を設定
+  syncOnLogin(currentUser.id, true).then(() => {
     renderAll();
   });
 }
@@ -2624,7 +2673,7 @@ async function openFollowListModal(targetUserId, type) {
 
   title.textContent = type === 'following' ? 'フォロー中' : 'フォロワー';
   container.innerHTML = '<p style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 32px 0;">読み込み中...</p>';
-  
+
   openModal('modal-follow-list');
 
   try {
@@ -2636,7 +2685,7 @@ async function openFollowListModal(targetUserId, type) {
       const res = await sheetDB.getFollowerIds(targetUserId);
       targetIds = res || [];
     }
-    
+
     const allUsers = await sheetDB.getAllUsers();
     const filteredUsers = allUsers.filter(u => targetIds.map(String).includes(String(u.id)));
 
@@ -2671,7 +2720,7 @@ async function openFollowListModal(targetUserId, type) {
         openUserProfileModal(uid);
       });
     });
-    
+
     container.querySelectorAll('.search-view-profile-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
