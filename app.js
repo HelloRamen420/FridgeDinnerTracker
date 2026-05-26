@@ -226,6 +226,16 @@ function getExpiryStatus(days) {
   return 'safe';
 }
 
+// 人数の表示用フォーマット
+function formatServings(servings) {
+  if (!servings) return '2人前';
+  const str = String(servings).trim();
+  if (str.endsWith('人前')) {
+    return str;
+  }
+  return str + '人前';
+}
+
 // 日付の和風フォーマット
 function formatJapaneseDate(dateString, withDayOfWeek = true) {
   if (!dateString) return '日付不明';
@@ -993,7 +1003,7 @@ async function renderTimeline() {
           <div class="tl-post-body">
             <div class="tl-post-dishname">${post.dishName}</div>
             <div class="tl-post-meta">
-              <span>👤 ${post.servings || '2人前'}</span>
+              <span>👤 ${formatServings(post.servings)}</span>
               <span class="tl-post-rating">★ ${parseFloat(post.rating || 5).toFixed(1)}</span>
             </div>
             <div class="tl-post-ingredients">${tags}</div>
@@ -1480,7 +1490,9 @@ function openLogModal(defaultDishName = '', existingLog = null) {
     document.getElementById('log-date').value = existingLog.date;
 
     // 人数の復元
-    document.getElementById('log-servings').value = existingLog.servings || '2人前';
+    let servingsVal = existingLog.servings || '2';
+    servingsVal = String(servingsVal).replace(/人前/g, '').trim();
+    document.getElementById('log-servings').value = servingsVal || '2';
 
     currentRating = parseFloat(existingLog.rating || 5.0);
     if (ratingSlider) {
@@ -1521,7 +1533,7 @@ function openLogModal(defaultDishName = '', existingLog = null) {
     document.getElementById('log-date').value = new Date().toISOString().split('T')[0]; // デフォルト今日
 
     // 人数の初期化
-    document.getElementById('log-servings').value = '2人前';
+    document.getElementById('log-servings').value = '2';
 
     currentRating = 5.0;
     if (ratingSlider) {
@@ -1793,7 +1805,7 @@ btnSaveLog.addEventListener('click', async (e) => {
   e.preventDefault();
   const name = logNameInput.value.trim();
   const date = document.getElementById('log-date').value;
-  const servings = document.getElementById('log-servings').value.trim() || '2人前';
+  const servings = document.getElementById('log-servings').value.replace(/人前/g, '').trim() || '2';
   const memo = memoTextarea.value;
 
   if (name === '') return;
@@ -1951,7 +1963,7 @@ function openLogDetailModal(log, isEditable = true) {
   // 人数表示の更新
   const servingsEl = document.getElementById('detail-servings');
   if (servingsEl) {
-    servingsEl.textContent = log.servings || '2人前';
+    servingsEl.textContent = formatServings(log.servings);
   }
 
   // 星評価 (小数点対応)
@@ -2014,13 +2026,49 @@ if (btnEditLogTrigger) {
 
 const btnDeleteLog = document.getElementById('btn-delete-log');
 if (btnDeleteLog) {
-  btnDeleteLog.addEventListener('click', () => {
+  btnDeleteLog.addEventListener('click', async () => {
     if (editingLogId) {
-      state.dinnerLogs = state.dinnerLogs.filter(item => item.id !== editingLogId);
-      state.save();
-      renderAll();
-      closeModal('modal-add-log');
-      editingLogId = null;
+      if (confirm('本当に削除していいですか？')) {
+        // ボタンをローディング表示にして二重クリックを防ぐ
+        const originalText = btnDeleteLog.textContent;
+        btnDeleteLog.disabled = true;
+        btnDeleteLog.textContent = '削除中...';
+
+        try {
+          const currentUser = sheetDB.getCurrentUser();
+          if (currentUser) {
+            // 1. タイムライン投稿も削除する（もし共有されていれば）
+            try {
+              await sheetDB.deletePost(editingLogId);
+              console.log("Timeline post auto-deleted.");
+            } catch (err) {
+              console.error("Auto timeline delete failed:", err);
+            }
+          }
+
+          // 2. ローカルから削除
+          state.dinnerLogs = state.dinnerLogs.filter(item => item.id !== editingLogId);
+          
+          // 3. ローカルの保存
+          state.save();
+
+          // 4. クラウドに直接上書き同期を送信して確実に待機する
+          if (currentUser && window.sheetDB && sheetDB.isLive()) {
+            await sheetDB.syncUserData(currentUser.id, state.ingredients, state.dinnerLogs, state.shoppingList);
+            console.log("Server DB dinner log deletion completed.");
+          }
+          
+          renderAll();
+          closeModal('modal-add-log');
+          editingLogId = null;
+        } catch (err) {
+          console.error("Delete log failed:", err);
+          alert("削除中にエラーが発生しました。");
+        } finally {
+          btnDeleteLog.disabled = false;
+          btnDeleteLog.textContent = originalText;
+        }
+      }
     }
   });
 }
@@ -2255,6 +2303,64 @@ function renderSearchResults(users) {
   });
 }
 
+// その人がタイムラインに上げた料理一覧をレンダリングする
+const postsContainer = document.getElementById('user-profile-posts');
+if (postsContainer) {
+  if (!prof.posts || prof.posts.length === 0) {
+    postsContainer.innerHTML = '<p style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 32px 0; border-top: 1px solid var(--border-color); margin-top: 16px;">まだタイムライン投稿はありません</p>';
+  } else {
+    const escapeString = (str) => {
+      if (!str) return '';
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    };
+
+    postsContainer.innerHTML = `
+      <h4 style="font-size: 0.9rem; font-weight: 700; margin: 24px 0 12px; color: var(--text-main); display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+        🍳 晩ごはんの投稿一覧 <span style="font-size: 0.75rem; color: var(--text-sub); font-weight: 500;">(${prof.posts.length}件)</span>
+      </h4>
+      <div class="user-profile-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-height: 400px; overflow-y: auto; padding-top: 4px;">
+        ${prof.posts.map(post => {
+          const photoHtml = post.photo 
+            ? `<img src="${post.photo}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">`
+            : `<div style="width: 100%; height: 100%; background: var(--bg-soft); border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 8px; text-align: center; box-sizing: border-box;">
+                 <span style="font-size: 1.5rem; margin-bottom: 4px;">🍳</span>
+                 <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-main); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-all; line-height: 1.2;">${escapeString(post.dishName)}</span>
+               </div>`;
+
+          return `
+            <div class="profile-grid-item" data-postid="${post.id}" style="aspect-ratio: 1 / 1; position: relative; overflow: hidden; border-radius: 8px; cursor: pointer; border: 1px solid var(--border-color); transition: transform 0.2s ease, box-shadow 0.2s ease;">
+              ${photoHtml}
+              <div class="grid-item-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.2s ease; color: white; font-size: 0.75rem; font-weight: bold; border-radius: 8px; text-align: center; padding: 4px; box-sizing: border-box;">
+                <div style="font-size: 0.8rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 90%;">${escapeString(post.dishName)}</div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span>★ ${parseFloat(post.rating || 5).toFixed(1)}</span>
+                  <span>👤 ${formatServings(post.servings)}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    // プロフィール内カードタップで詳細を開くイベント
+    postsContainer.querySelectorAll('.profile-grid-item').forEach(card => {
+      card.addEventListener('click', (e) => {
+        const postId = card.getAttribute('data-postid');
+        const post = prof.posts.find(p => p.id === postId);
+        if (post) {
+          const isMyPost = post.userId === user.id;
+          const localLog = isMyPost ? state.dinnerLogs.find(item => item.id === post.id) : null;
+          if (localLog) {
+            openLogDetailModal(localLog, true); // 自分の投稿でローカルログありなら編集可能
+          } else {
+            openLogDetailModal(post, false); // 他人の投稿またはローカルログなしなら編集不可（読み取り専用）
+          }
+        }
+      });
+    });
+  }
+}
 
 // ─── 8. 買い物メモ手動操作イベント ───
 const btnAddShopping = document.getElementById('btn-add-shopping');

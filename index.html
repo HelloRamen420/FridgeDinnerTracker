@@ -417,7 +417,10 @@
             <input type="date" id="log-date" class="form-input" required>
             
             <label class="form-label">何人前</label>
-            <input type="text" id="log-servings" class="form-input" placeholder="例: 2人前" value="2人前" required>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input type="number" id="log-servings" class="form-input" placeholder="例: 2" value="2" min="1" step="any" required style="flex: 1; margin-bottom: 0;">
+              <span style="font-weight: 500; color: var(--text-main); white-space: nowrap;">人前</span>
+            </div>
           </div>
           
           <!-- 星評価 -->

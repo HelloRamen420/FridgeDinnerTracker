@@ -2375,3 +2375,18 @@ body {
 .spinning svg {
   animation: spin 0.8s linear infinite;
 }
+
+/* プロフィール画面のInstagram風グリッド投稿スタイル */
+.profile-grid-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.profile-grid-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.profile-grid-item:active {
+  transform: scale(0.97);
+}
+.profile-grid-item:hover .grid-item-overlay {
+  opacity: 1 !important;
+}
